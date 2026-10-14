@@ -1252,7 +1252,12 @@ const FNX = {}; DP.fns.forEach(f => FNX[f[0]] = { code: f[0], name: f[1], desc: 
 const TYPEG = { "Master & Reference": "reach", "Conformed Facts": "result", "Analytical": "offer", "Operational": "sell", "Regulatory & Control": "serve" };
 const tvar = t => `var(--g-${TYPEG[t] || "found"})`;
 DP.p.forEach(p => { p.nA = p.in.reduce((t, x) => t + x[3].length, 0); p.nC = p.in.reduce((t, x) => t + x[3].filter(i => A[i].cde).length, 0); p.doms = [...new Set(p.in.map(x => x[0]))].sort(); p.down = DP.p.filter(q => q.up.includes(p.id)).map(q => q.id); });
-const dpUses = n => DP.p.filter(p => p.doms.includes(n));
+// Reading order within a topic: foundational before consumer; type in the order data flows (master, facts, operational,
+// analytical, regulatory and control); then the products most others build on; then id.
+const TYPE_ORDER = ["Master & Reference", "Conformed Facts", "Operational", "Analytical", "Regulatory & Control"];
+const dpOrder = (a, b) => (a.tier === "Foundational" ? 0 : 1) - (b.tier === "Foundational" ? 0 : 1)
+  || TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) || (b.down || []).length - (a.down || []).length || a.id.localeCompare(b.id);
+const dpUses = n => DP.p.filter(p => p.doms.includes(n)).sort(dpOrder);
 const DPF = { q: "", fn: "", type: "", route: "", reads: false };
 // Area view: a product belongs to the view when its owning Data Domain does (or is in the Foundations band); with DPF.reads,
 // products of other areas that read one of the view's own domains are shown too. Functions follow their home area or their products.
@@ -1276,7 +1281,7 @@ function dpMatch(p) {
 function dpGrid() {
   const spec = DP.p.filter(dpMatch), bl = DP.bl.filter(dpMatch);
   const found = spec.filter(p => p.tier === "Foundational"), cons = spec.filter(p => p.tier !== "Foundational");
-  const byTopic = ps => DP.topics.map(t => [t, ps.filter(p => p.topic === t[0])]).filter(x => x[1].length);
+  const byTopic = ps => DP.topics.map(t => [t, ps.filter(p => p.topic === t[0]).sort(dpOrder)]).filter(x => x[1].length);
   const topicGroups = ps => byTopic(ps).map(([t, g]) => `<div class="ogroup" title="${esc(t[2])}">${esc(t[1])}</div><div class="cards">${g.map(dpCard).join("")}</div>`).join("");
   $("#dpgrid").innerHTML = (found.length ? `<div class="dpg"><div class="sec-h"><h2>Foundational</h2><p>${esc(DP.tiers.Foundational)} Grouped by topic.</p></div>${topicGroups(found)}</div>` : "")
     + (cons.length ? `<div class="dpg"><div class="sec-h"><h2>Consumer-aligned</h2><p>${esc(DP.tiers["Consumer-aligned"])} Grouped by topic; use the function filter to see one function's products.</p></div>${topicGroups(cons)}</div>` : "")
