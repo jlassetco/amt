@@ -14,6 +14,7 @@
   /* diagram type scale: SVGs render at 1:1 on desktop, so these are on-screen sizes */
   --dg-title: 14px; --dg-text: 12.5px; --dg-label: 11px;
   --g-offer: #2c6e91; --g-reach: #6a4fa0; --g-sell: #a86f10; --g-result: #2d7d5a; --g-serve: #a0436a; --g-found: #56636d; --g-enterprise: #7a5a12; --g-invest: #2f6f73; --g-oversight: #8a4b2f; --g-corporate: #4a5a8c;
+  --g-semantic: #c2410c;   /* the semantic layer in trace diagrams: unlike every product type and the accent */
   --shadow: 0 12px 32px rgba(23, 33, 40, .14);
   /* areas (capability_map/areas.py): mapped onto the categorical series, so a brand theme that sets --g-* recolors them too */
   --a-inv: var(--g-offer); --a-iop: var(--g-result); --a-fop: var(--g-serve); --a-dcl: var(--g-sell); --a-corp: var(--g-enterprise); --a-fdn: var(--g-found);
@@ -26,14 +27,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #10171b; --surface: #172127; --sunk: #1e2a31; --ink: #e5ebed; --muted: #97a6ad; --line: #2b3841; --accent: #7db8d2;
-    --g-offer: #6fb0d2; --g-reach: #ab95dc; --g-sell: #deae55; --g-result: #6cc69b; --g-serve: #dd8db0; --g-found: #9cabb4; --g-enterprise: #d6b46a; --g-invest: #6cc3c7; --g-oversight: #e0a07f; --g-corporate: #9aa8dc;
+    --g-offer: #6fb0d2; --g-reach: #ab95dc; --g-sell: #deae55; --g-result: #6cc69b; --g-serve: #dd8db0; --g-found: #9cabb4; --g-enterprise: #d6b46a; --g-invest: #6cc3c7; --g-oversight: #e0a07f; --g-corporate: #9aa8dc; --g-semantic: #ff9a62;
     --shadow: 0 12px 32px rgba(0, 0, 0, .5);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #10171b; --surface: #172127; --sunk: #1e2a31; --ink: #e5ebed; --muted: #97a6ad; --line: #2b3841; --accent: #7db8d2;
-  --g-offer: #6fb0d2; --g-reach: #ab95dc; --g-sell: #deae55; --g-result: #6cc69b; --g-serve: #dd8db0; --g-found: #9cabb4; --g-enterprise: #d6b46a; --g-invest: #6cc3c7; --g-oversight: #e0a07f; --g-corporate: #9aa8dc;
+  --g-offer: #6fb0d2; --g-reach: #ab95dc; --g-sell: #deae55; --g-result: #6cc69b; --g-serve: #dd8db0; --g-found: #9cabb4; --g-enterprise: #d6b46a; --g-invest: #6cc3c7; --g-oversight: #e0a07f; --g-corporate: #9aa8dc; --g-semantic: #ff9a62;
   --shadow: 0 12px 32px rgba(0, 0, 0, .5);
   color-scheme: dark;
 }
@@ -394,6 +395,34 @@ a.chip:hover { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
 .dpol { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; }
 .two.dp2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 select.xbtn { appearance: auto; }
+/* trace diagrams: attribute → product → product → semantic layer, drawn as fixed columns */
+.trwrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px; }
+.trsvg { display: block; font-family: var(--f-body); }
+.trl { font-size: var(--dg-label); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--muted); }
+.trn rect.trb { fill: var(--bg); stroke: var(--line); }
+.trn rect.trs { fill: var(--c); }
+.trn.act { cursor: pointer; }
+.trn.act:hover rect.trb, .trn.act:focus rect.trb { stroke: var(--c); stroke-width: 2; }
+.trn.act:focus { outline: none; }
+.trn.sel rect.trb { stroke: var(--c); stroke-width: 2; fill: color-mix(in srgb, var(--c) 10%, var(--surface)); }
+.trn.focus rect.trb { fill: var(--ink); stroke: var(--ink); }
+.trn.focus .trt, .trn.focus .tru { fill: var(--bg); }
+.trt { font-size: var(--dg-text); font-weight: 600; fill: var(--ink); }
+.tru { font-size: var(--dg-label); fill: var(--muted); }
+.trsvg a:hover .trt { text-decoration: underline; }
+.trx { font-size: 13px; fill: var(--muted); font-family: var(--f-mono); }
+.tre { fill: none; stroke: var(--muted); stroke-width: 1.3; opacity: .55; }
+.tre.skip { stroke-dasharray: 4 3; }
+.tre.on { stroke: var(--ink); stroke-width: 2; opacity: 1; }
+.trbtn { display: inline-block; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 4px; text-decoration: none; white-space: nowrap; }
+.trbtn:hover, .trbtn[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+.m-src .trbtn { margin-top: 2px; }
+tr.trrow > td { padding: 10px 12px 14px; background: var(--sunk); }
+.trnote { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; max-width: var(--measure); }
+.trstrip { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+.trstrip .chip { font-size: 12px; }
+.trbox:empty { display: none; }
+.xpanel .trwrap { padding: 4px; }
 /* guide */
 .gjump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .gsec { scroll-margin-top: 84px; }
@@ -541,7 +570,7 @@ details.afl ul { margin-top: 8px; }
   --bg: #f5f6fa; --surface: #ffffff; --sunk: #eaedf3; --ink: #0c233c; --muted: #535e6c; --line: #d5d9e1;
   --accent: #1e49e2; --accent-ink: #ffffff; --accent-soft: #e3e9fc;
   /* categorical series (explorer value-chain groups) */
-  --g-offer: #1e49e2; --g-reach: #7213ea; --g-sell: #c8166f; --g-result: #00796f; --g-serve: #0077a8; --g-found: #5b6676; --g-enterprise: #8a6400;
+  --g-offer: #1e49e2; --g-reach: #7213ea; --g-sell: #c8166f; --g-result: #00796f; --g-serve: #0077a8; --g-found: #5b6676; --g-enterprise: #8a6400; --g-semantic: #d9480f;
   /* status */
   --cde: #c8166f; --cde-soft: #fde4f1;
   --ok: #00796f; --ok-soft: #d8f5f1; --warn: #9a5b00; --warn-soft: #fbeccf; --ask: #7213ea; --ask-soft: #ece1fd; --bad: #c0262d; --bad-soft: #fbe0e1;
@@ -558,7 +587,7 @@ details.afl ul { margin-top: 8px; }
   :root:not([data-theme="light"]) {
     --bg: #071627; --surface: #0c233c; --sunk: #12304f; --ink: #f5f6fa; --muted: #a7b3c4; --line: #21405f;
     --accent: #7f9cff; --accent-ink: #071627; --accent-soft: #1a3266;
-    --g-offer: #7f9cff; --g-reach: #b78cff; --g-sell: #ff7dbf; --g-result: #63ebda; --g-serve: #4fd0ff; --g-found: #a7b3c4; --g-enterprise: #f1c75b;
+    --g-offer: #7f9cff; --g-reach: #b78cff; --g-sell: #ff7dbf; --g-result: #63ebda; --g-serve: #4fd0ff; --g-found: #a7b3c4; --g-enterprise: #f1c75b; --g-semantic: #ffa15c;
     --cde: #ff7dbf; --cde-soft: #44193a;
     --ok: #63ebda; --ok-soft: #10393d; --warn: #f2b65a; --warn-soft: #3d2c12; --ask: #b78cff; --ask-soft: #2c1f52; --bad: #ff8a8f; --bad-soft: #43191e;
     --shadow: 0 12px 32px rgba(0, 0, 0, .5);
@@ -569,7 +598,7 @@ details.afl ul { margin-top: 8px; }
 :root[data-theme="dark"] {
   --bg: #071627; --surface: #0c233c; --sunk: #12304f; --ink: #f5f6fa; --muted: #a7b3c4; --line: #21405f;
   --accent: #7f9cff; --accent-ink: #071627; --accent-soft: #1a3266;
-  --g-offer: #7f9cff; --g-reach: #b78cff; --g-sell: #ff7dbf; --g-result: #63ebda; --g-serve: #4fd0ff; --g-found: #a7b3c4; --g-enterprise: #f1c75b;
+  --g-offer: #7f9cff; --g-reach: #b78cff; --g-sell: #ff7dbf; --g-result: #63ebda; --g-serve: #4fd0ff; --g-found: #a7b3c4; --g-enterprise: #f1c75b; --g-semantic: #ffa15c;
   --cde: #ff7dbf; --cde-soft: #44193a;
   --ok: #63ebda; --ok-soft: #10393d; --warn: #f2b65a; --warn-soft: #3d2c12; --ask: #b78cff; --ask-soft: #2c1f52; --bad: #ff8a8f; --bad-soft: #43191e;
   --shadow: 0 12px 32px rgba(0, 0, 0, .5);
@@ -695,14 +724,14 @@ function route() {
   const cur = sel => { const a = $(`#nav a[href="${sel}"]`); if (a) a.setAttribute("aria-current", "page"); };
   $("#navref").open = false; $("#navref").classList.toggle("cur", h[0] === "entities" || h[0] === "lists" || h[0] === "capabilities");
   if (h[0] === "view" || h[0] === "distribution" || h[0] === "enterprise") { setScope(h[0] === "view" ? h[1] : h[0] === "distribution" ? DCL : "all"); location.replace("#/"); return; }
-  if (h[0] === "d" && BD[h[1]]) { pageDomain(h[1], h[2], h[3], h[4]); }
+  if (h[0] === "d" && BD[h[1]]) { pageDomain(h[1], h[2], h[3], h[4], h[5] === "trace"); }
   else if (h[0] === "area" && AREA[h[1]]) { cur("#/"); pageArea(h[1]); }
   else if (h[0] === "capabilities") { cur("#/capabilities"); pageCaps(h[1]); }
   else if (h[0] === "explore") { cur("#/explore"); pageExplore(); }
   else if (h[0] === "entities") { cur("#/entities"); pageEntities(); }
   else if (h[0] === "lists") { cur("#/lists"); pageLists(h[1]); }
   else if (h[0] === "products") { cur("#/products"); h[1] ? pageProduct(h[1]) : pageProducts(); }
-  else if (h[0] === "semantic") { cur("#/semantic"); h[1] === "metrics" ? pageMetrics() : h[1] ? pageSemModel(h[1]) : pageSemantic(); }
+  else if (h[0] === "semantic") { cur("#/semantic"); h[1] === "metrics" ? pageMetrics() : h[1] ? pageSemModel(h[1], h[2] === "m" ? h[3] : "") : pageSemantic(); }
   else if (h[0] === "guide") { cur("#/guide"); pageGuide(h[1]); }
   else { cur("#/"); SCOPE !== "all" ? pageArea(SCOPE, true) : pageAreas(); }
 }
@@ -1040,13 +1069,13 @@ function ownCell(a) {
 function attrTable(idx, bdN, hl) {
   return `<div class="tbl"><table><thead><tr><th>Data business attribute</th><th>Definition</th><th>Ownership</th><th>Data type</th><th>Values / format</th><th>Example</th></tr></thead><tbody>${idx.map(i => {
     const a = A[i];
-    return `<tr id="a${i}" class="${i === hl ? "hl" : ""}"><td class="an"><b>${esc(a.name)}</b>${a.cde ? '<span class="badge cde" title="Critical data element">CDE</span>' : ""}${a.pii ? '<span class="badge pii">Personal data</span>' : ""}</td>
+    return `<tr id="a${i}" class="${i === hl ? "hl" : ""}"><td class="an"><b>${esc(a.name)}</b>${a.cde ? '<span class="badge cde" title="Critical data element">CDE</span>' : ""}${a.pii ? '<span class="badge pii">Personal data</span>' : ""}${trAttrBtn(i)}</td>
       <td class="def">${esc(a.def)}${a.note ? `<span class="note">${esc(a.note)}</span>` : ""}${a.p1 && a.p1 !== "Internal" ? `<span class="note">Standard: ${esc(a.p1)}${a.p2 ? ", " + esc(a.p2) : ""}</span>` : ""}</td>
       <td>${ownCell(a)}</td>
       <td class="ty">${esc(a.type)}<span class="note">${esc(a.applies)}</span></td><td>${valuesCell(a, bdN)}</td><td class="ex">${esc(a.ex || "—")}</td></tr>`;
   }).join("")}</tbody></table></div>`;
 }
-function pageDomain(n, fi, oi, hl) {
+function pageDomain(n, fi, oi, hl, trace) {
   const b = BD[n], st = STATS[n], g = `var(--g-${b.group})`, dOn = drawsOn(n), uBy = usedBy(n), own = owned(n);
   fi = Math.min(Math.max(+fi || 0, 0), b.f.length - 1);
   oi = oi === undefined ? -1 : +oi;
@@ -1089,7 +1118,7 @@ function pageDomain(n, fi, oi, hl) {
     ${smUses(n).length ? `<section><details class="con"><summary><b>Semantic models that publish this domain</b><small>${plural(smUses(n).length, "model")}</small></summary><div class="chips" style="padding:4px 14px 14px">${smUses(n).map(m => smLink(m.id)).join("")}</div></details></section>` : ""}
   </div>`;
   document.querySelectorAll(".icard").forEach(c => c.onclick = () => { history.replaceState(null, "", `#/d/${n}/${c.dataset.fi}`); pageDomain(n, c.dataset.fi); $("#focus").scrollIntoView({ behavior: "smooth", block: "start" }); });
-  if (hl >= 0 && document.getElementById("a" + hl)) document.getElementById("a" + hl).scrollIntoView({ block: "center" });
+  if (hl >= 0 && document.getElementById("a" + hl)) { const row = document.getElementById("a" + hl), tb = trace && row.querySelector(".trbtn[data-tr=attr]"); if (tb) trToggle(tb); row.scrollIntoView({ block: trace ? "start" : "center" }); }
   else if (oi >= 0) { const c = document.getElementById("o" + oi); if (c) c.scrollIntoView({ block: "start" }); }
   else if (!history.state) window.scrollTo(0, 0);
 }
@@ -1173,6 +1202,7 @@ function xPanel(i) {
       <dt>Applies to</dt><dd>${esc(a.applies)}</dd>${a.p1 && a.p1 !== "Internal" ? `<dt>Standard</dt><dd>${esc(a.p1)}${a.p2 ? ", " + esc(a.p2) : ""}</dd>` : ""}
       <dt>Object grain</dt><dd>${o.grain ? "One row = " + esc(o.grain) : "—"}${o.kind ? ` <span class="muted">(${esc(o.kind)}${o.parent ? " of " + esc(o.parent) : ""})</span>` : ""}</dd>
       <dt>Flags</dt><dd>${[a.cde && "Critical data element", a.pii && "Personal data"].filter(Boolean).join(" · ") || "—"}</dd></dl>
+    ${PBYA[i] ? `<div class="ownbox" style="--g:var(--accent)"><span class="lab">Where it goes</span>Read by <b>${plural(PBYA[i].length, "data product")}</b>${SMCOL[i] ? `, published as <b>${plural(SMCOL[i].length, "model column")}</b>` : ""}. <button type="button" class="trbtn" data-tr="attr" data-i="${i}" data-box="A${i}" aria-pressed="false">Trace</button><div class="trbox" data-trbox="A${i}" style="margin-top:8px"></div></div>` : ""}
     <a class="btn ghost" href="#/d/${l.bd}/${l.fi}/${l.oi}/${i}">Open in ${esc(b.short)} →</a>
     <div class="xrule"><b>Ownership rule.</b> The Data Domain that produces and maintains a concept masters it; every other Data Domain references it by enterprise ID.</div>`;
 }
@@ -1409,6 +1439,7 @@ function pageProduct(id) {
       <div class="box"><h3>Questions it answers</h3><ol class="dpol">${p.q.map(q => `<li>${esc(q)}</li>`).join("")}</ol>
         <h3 style="margin-top:6px">Dimensions</h3><div class="chips">${p.dims.map(d => `<span class="chip">${esc(d)}</span>`).join("")}</div></div>
       <div class="box" style="padding:0;overflow:hidden"><h3 style="padding:16px 18px 0">Measures</h3><div class="tbl"><table><tbody>${p.m.map(m => `<tr><td class="an"><b>${esc(m[0])}</b></td><td class="def">${esc(m[1])}<span class="m-uses">Reads ${m[2].map(u => typeof u === "string" ? `<i>${esc(u)}</i>` : `<a href="#/d/${u[0]}/${u[1]}/${u[2]}">${esc(BD[u[0]].f[u[1]].o[u[2]].name)} · ${esc(A[u[3]][0])}</a>`).join(", ")}</span></td></tr>`).join("")}</tbody></table></div></div></div></section>
+    <section><div class="sec-h"><h2>Lineage map</h2><p>What this product is built from and what it feeds, one hop each way. The semantic model that publishes a product sits beside the products it feeds. Select a product to follow the chain another hop. Shared masters that most products read are listed underneath rather than drawn.</p></div><div id="trprod"></div></section>
     <section><div class="sec-h"><h2>Lineage</h2><p>${plural(p.nA, "attribute")} (${p.nC} CDEs) from ${plural(p.in.length, "data business object")} in ${plural(p.doms.length, "Data Domain")}. Each links to its definition in the taxonomy.</p></div>
       <div class="concepts">${lin}</div></section>
     ${p.lm ? lmSection(p) : ""}
@@ -1420,6 +1451,7 @@ function pageProduct(id) {
     ${p.bl ? "" : `<div class="statrow"><div><b>${p.in.length}</b><span>input objects</span></div><div><b>${p.nA}</b><span>input attributes</span></div><div><b>${p.nC}</b><span>critical data elements</span></div><div><b>${p.doms.length}</b><span>Data Domains</span></div><div><b>${p.m.length}</b><span>measures</span></div></div>`}
     </div>${body}</div>`;
   lmWire();
+  if (!p.bl) $("#trprod").innerHTML = trProductHtml(p.id);
   window.scrollTo(0, 0);
 }
 
@@ -1460,9 +1492,9 @@ const smCols = k => `<colgroup>${SMCOLS[k].map(w => `<col style="width:${w}%">`)
 function smMetricRow(x, m) {
   if (x.ref) { const [rm, rn] = x.ref.split("/"), t = SMX[rm], d = t && (t.metrics || []).find(y => y.n === rn && !y.ref);
     return `<tr><td class="mn"><b>${esc(x.n)}</b><span class="badge conf">Certified</span><span class="m-desc">${d ? esc(d.desc) : ""}</span></td><td class="m-agg">${d ? esc(AGL[d.agg]) : ""}</td>
-      <td colspan="2"><div class="m-src"><span>Defined once in ${smLink(rm)}</span>${d ? `<small>Publishes ${esc(d.src[1])} from ${esc(d.src[0])}</small>` : ""}</div></td></tr>`; }
+      <td colspan="2"><div class="m-src"><span>Defined once in ${smLink(rm)}</span>${d ? `<small>Publishes ${esc(d.src[1])} from ${esc(d.src[0])}</small><a class="trbtn" href="#/semantic/${rm}/m/${slug(rn)}">Trace in ${rm}</a>` : ""}</div></td></tr>`; }
   return `<tr><td class="mn"><b>${esc(x.n)}</b>${x.cert ? '<span class="badge conf">Certified</span>' : ""}<span class="m-desc">${esc(x.desc)}</span>${x.note ? `<span class="m-note">${esc(x.note)}</span>` : ""}</td>
-    <td class="m-agg">${esc(AGL[x.agg])}</td><td>${smRule(x)}</td><td>${smSrc(x.src[0], x.src[1])}</td></tr>`;
+    <td class="m-agg">${esc(AGL[x.agg])}</td><td>${smRule(x)}</td><td><div class="m-src">${dpLink(x.src[0])}<small>${esc(x.src[1])}</small><button type="button" class="trbtn" data-tr="metric" data-m="${m.id}" data-n="${esc(x.n)}" data-s="${slug(x.n)}" aria-pressed="false" title="Trace this metric to the product measure and the taxonomy attributes behind it">Trace</button></div></td></tr>`;
 }
 function smMetricRows(m, own, refs) {
   // grouped by the product each metric publishes, in the model's product order; borrowed certified metrics last
@@ -1484,7 +1516,7 @@ function smTable(t) {
     <div class="tbl"><table><thead><tr><th>Column</th><th>Taxonomy attribute</th><th>Role</th></tr></thead><tbody>${cols.map(([c, r]) => `<tr><td class="ex">${esc(c[0])}</td><td>${smAttr(c)}${c[3] ? `<div class="muted" style="font-size:12.5px">${esc(c[3])}</div>` : ""}</td><td class="ty">${r}</td></tr>`).join("")}
     ${t.h.map(h => `<tr><td class="ex">hidden</td><td><s>${esc(h[0])}</s><div class="muted" style="font-size:12.5px">${esc(h[1])}</div></td><td class="ty">Not exposed</td></tr>`).join("")}</tbody></table></div></details>`;
 }
-function pageSemModel(id) {
+function pageSemModel(id, mslug) {
   const m = SMX[id]; if (!m) return pageSemantic();
   const head = `<div class="dhead"><div class="crumb"><a href="#/semantic">Semantic models</a><span>›</span><span>${esc(m.id)}</span></div>
     <span class="num">${m.id} · Owner: ${esc(m.owner)}</span><h1>${esc(m.name)}</h1><p class="tag">${esc(m.desc || m.purpose)}</p><div>${smStatus(m)}</div>`;
@@ -1515,7 +1547,8 @@ function pageSemModel(id) {
       ${m.ca.length ? `<div class="box"><h3>Questions it cannot answer yet</h3><ol class="smq">${m.ca.map(c => `<li><b>${esc(c[0])}</b><div>${esc(c[1])}${c[2] ? ` <span class="mono" title="${esc(c[3])}">${esc(c[2])}</span>` : ""}</div></li>`).join("")}</ol></div>` : ""}</div></section>
     ${m.excl.length ? `<section><details class="con"><summary><b>Product measures not published</b><small>${plural(m.excl.length, "measure")}</small></summary><div class="tbl"><table class="fx">${smCols("excl")}<thead><tr><th>Product</th><th>Measure</th><th>Why</th></tr></thead><tbody>${m.excl.map(x => `<tr><td>${dpLink(x[0])}</td><td><b style="font-weight:600">${esc(x[1])}</b></td><td>${esc(x[2])}</td></tr>`).join("")}</tbody></table></div></details></section>` : ""}
   </div>`;
-  window.scrollTo(0, 0);
+  const tb = mslug && document.querySelector(`.trbtn[data-tr="metric"][data-s="${CSS.escape(mslug)}"]`);
+  if (tb) { trToggle(tb); tb.closest("tr").scrollIntoView({ block: "start" }); } else window.scrollTo(0, 0);
 }
 
 const SMF = { q: "" };
@@ -1523,7 +1556,7 @@ function pageMetrics() {
   const all = smDefined().sort((a, b) => a.n.localeCompare(b.n));
   const row = x => `<tr><td class="mn"><b>${esc(x.n)}</b>${x.cert ? '<span class="badge conf">Certified</span>' : ""}<span class="m-desc">${esc(x.desc)}</span></td>
     <td class="m-agg">${esc(AGL[x.agg])}</td><td>${smSrc(x.src[0], x.src[1])}</td>
-    <td>${smLink(x.m.id)}${smRefsTo(x.m.id, x.n).length ? `<div class="muted" style="font-size:12px;margin-top:4px">Also used in ${smRefsTo(x.m.id, x.n).join(", ")}</div>` : ""}</td></tr>`;
+    <td>${smLink(x.m.id)} <a class="trbtn" href="#/semantic/${x.m.id}/m/${slug(x.n)}">Trace</a>${smRefsTo(x.m.id, x.n).length ? `<div class="muted" style="font-size:12px;margin-top:4px">Also used in ${smRefsTo(x.m.id, x.n).join(", ")}</div>` : ""}</td></tr>`;
   const draw = () => { const q = SMF.q.toLowerCase().trim();
     const hit = all.filter(x => !q || q.split(/\s+/).every(w => (x.n + " " + x.desc + " " + x.src.join(" ") + " " + x.m.name).toLowerCase().includes(w)));
     $("#smrows").innerHTML = hit.map(row).join("") || `<tr><td colspan="4" class="muted">No metrics match.</td></tr>`;
@@ -1538,6 +1571,198 @@ function pageMetrics() {
   let t; $("#smq").oninput = e => { clearTimeout(t); t = setTimeout(() => { SMF.q = e.target.value; draw(); }, 140); };
   window.scrollTo(0, 0);
 }
+
+/* ---------- trace diagrams ---------- */
+// One layered diagram, three entry points. A metric is traced down to the product measure it publishes, the taxonomy
+// attributes the formula reads and the objects that define them. A product is traced both ways: what it is built from,
+// what it feeds and the semantic models that publish it, one hop each way with a box selected to follow the chain. An
+// attribute is traced up: the products that read it, the measures that use it and the model columns and metrics it ends
+// in. Everything is computed from data the page already holds; the indexes below are built once.
+const PBYA = [];                                    // attribute index -> products that read it
+DP.p.forEach(p => p.in.forEach(x => x[3].forEach(ai => (PBYA[ai] ||= []).push(p.id))));
+const SMCOL = [], SMMET = {};                       // attribute -> model columns; "DP-nnn/measure" -> model metrics
+SMD.m.forEach(m => { (m.tables || []).forEach(t => t.d.concat(t.f).forEach(c => { if (c[2] >= 0) (SMCOL[c[2]] ||= []).push([m.id, t.n, c[0], t.p]); }));
+  (m.metrics || []).forEach(x => { if (x.src) (SMMET[x.src[0] + "/" + x.src[1]] ||= []).push([m.id, x.n]); }); });
+const smColor = () => "var(--g-semantic)";
+const TR_W = 210, TR_H = 44, TR_GY = 10, TR_GX = 64, TR_PAD = 12, TR_TOP = 26, TR_GROUP = 14;
+const trCut = (s, n) => { s = String(s ?? ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+const TRACT = {};                                   // keyed node id -> what selecting the box does
+function trLayout(cols) {
+  const colH = cols.map(c => Math.max(c.nodes.length * (TR_H + TR_GY) - TR_GY, 0));
+  const H = Math.max(...colH, TR_H) + TR_TOP + TR_PAD * 2, pos = {};
+  cols.forEach((c, ci) => { let y = TR_TOP + TR_PAD + (H - TR_TOP - 2 * TR_PAD - colH[ci]) / 2;
+    c.nodes.forEach(n => { pos[n.id] = { x: TR_PAD + ci * (TR_W + TR_GX), y, w: TR_W, h: TR_H, ci }; y += TR_H + TR_GY; }); });
+  return { pos, W: 2 * TR_PAD + cols.length * TR_W + (cols.length - 1) * TR_GX, H };
+}
+function trNode(n, p, id) {
+  const t = `<text class="trt" x="${p.x + 14}" y="${p.y + 18}">${esc(trCut(n.title, n.act ? 24 : 26))}</text>`;
+  return `<g class="trn${n.act ? " act" : ""}${n.sel ? " sel" : ""}${n.focus ? " focus" : ""}" data-id="${esc(id)}"${n.act ? ' tabindex="0" role="button"' : ""} style="--c:${n.color}">
+    <rect class="trb" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="7"/><rect class="trs" x="${p.x}" y="${p.y + 8}" width="4" height="${p.h - 16}" rx="2"/>
+    ${n.href ? `<a href="${esc(n.href)}">${t}</a>` : t}<text class="tru" x="${p.x + 14}" y="${p.y + 34}">${esc(trCut(n.sub, 32))}</text>
+    ${n.act ? `<text class="trx" x="${p.x + p.w - 9}" y="${p.y + 19}" text-anchor="end">${n.sel ? "–" : "+"}</text>` : ""}<title>${esc(n.tip || (n.title + (n.sub ? " · " + n.sub : "")))}</title></g>`;
+}
+function trSvg(key, cols, edges, label) {
+  const L = trLayout(cols), pos = L.pos, kid = id => `${key}|${id}`;
+  const e = edges.filter(([a, b]) => pos[a] && pos[b]).map(([a, b]) => { const p = pos[a], q = pos[b], x1 = p.x + p.w, y1 = p.y + p.h / 2, x2 = q.x, y2 = q.y + q.h / 2;
+    return `<path class="tre${q.ci - p.ci > 1 ? " skip" : ""}" data-a="${esc(kid(a))}" data-b="${esc(kid(b))}" d="M${x1},${y1} C${(x1 + x2) / 2},${y1} ${(x1 + x2) / 2},${y2} ${x2},${y2}"/>`; }).join("");
+  const labels = cols.map((c, ci) => `<text class="trl" x="${TR_PAD + ci * (TR_W + TR_GX)}" y="16">${esc(c.label)}</text>`).join("");
+  const nodes = cols.flatMap(c => c.nodes.map(n => trNode(n, pos[n.id], kid(n.id)))).join("");
+  return `<div class="trwrap"><svg class="trsvg" viewBox="0 0 ${L.W} ${L.H}" width="${L.W}" height="${L.H}" role="img" aria-label="${esc(label)}">${e}${labels}${nodes}</svg></div>`;
+}
+const trLegend = (types, extra) => `<div class="legend" style="margin-top:8px">${TYPE_ORDER.filter(t => types.has(t)).map(t => `<span><span class="sw" style="background:${tvar(t)}"></span>${esc(t)}</span>`).join("")}${types.has("sm") ? `<span><span class="sw" style="background:var(--g-semantic)"></span>Semantic model</span>` : ""}${types.has("direct") ? `<span><span class="sw" style="background:var(--g-found)"></span>Direct delivery</span>` : ""}${types.has("group") ? `<span><span class="sw" style="background:var(--muted)"></span>Topic group</span>` : ""}${extra || ""}</div>`;
+// A column of products: grouped by topic when it is long, a group opening into its members when selected.
+function trProdCol(ci, pids, gkey, groups, opts) {
+  const one = pid => { const p = DPX[pid]; return { id: `${ci}:${pid}`, title: p.name, sub: `${pid} · ${p.type}`, color: tvar(p.type), href: `#/products/${pid}`, members: [pid], act: !!(opts.act && opts.act(pid)), sel: !!(opts.sel && opts.sel(pid)) }; };
+  if (pids.length <= TR_GROUP) return pids.map(one);
+  const nodes = [];
+  DP.topics.forEach(t => { const mem = pids.filter(p => DPX[p].topic === t[0]); if (!mem.length) return; const k = `${gkey}:${t[0]}`;
+    const open = groups.has(k);
+    nodes.push({ id: `${ci}:g:${t[0]}`, title: t[1], sub: plural(mem.length, "product") + (open ? " · select to close" : " · select to open"), color: "var(--muted)", members: open ? [] : mem, act: true, sel: open, group: k, tip: `${t[1]}: ${mem.join(", ")}` });
+    if (open) mem.forEach(p => nodes.push(one(p))); });
+  const rest = pids.filter(p => !DP.topics.some(t => t[0] === DPX[p].topic));
+  rest.forEach(p => nodes.push(one(p)));
+  return nodes;
+}
+
+/* metric: metric -> product measure(s) -> taxonomy attributes -> business objects */
+function trMetricModel(mid, x) {
+  const pid = x.src[0], p = DPX[pid]; if (!p || p.bl) return null;
+  const byName = {}; p.m.forEach(m => byName[m[0]] = m);
+  const mnode = { id: "m", title: x.n, sub: (AGL[x.agg] || "") + (x.cert ? " · certified" : ""), color: smColor(mid), href: `#/semantic/${mid}`, focus: true };
+  if (!byName[x.src[1]]) {                        // published straight from an attribute the product carries
+    let ai = -1; p.in.some(e => { const k = e[3].find(j => A[j].name === x.src[1]); if (k !== undefined) { ai = k; return true; } return false; });
+    if (ai < 0) return null;
+    const L = LOC[ai], o = BD[L.bd].f[L.fi].o[L.oi];
+    return { cols: [{ label: `Metric · ${mid}`, nodes: [mnode] },
+                    { label: `Published attribute · ${pid}`, nodes: [{ id: "a:" + ai, title: A[ai].name, sub: p.name, color: tvar(p.type), href: `#/products/${pid}`, tip: `${A[ai].name}: ${A[ai].def}` }] },
+                    { label: "Business object · Data Domain", nodes: [{ id: "o", title: o.name, sub: `${L.bd} ${BD[L.bd].short}`, color: gvar(L.bd), href: `#/d/${L.bd}/${L.fi}/${L.oi}/${ai}` }] }],
+             edges: [["m", "a:" + ai], ["a:" + ai, "o"]], p, nAttr: 1, nObj: 1, nMeas: 0 };
+  }
+  const lvl = {}, walk = (n, d) => { if (!byName[n] || d > 6 || (lvl[n] !== undefined && lvl[n] >= d)) return; lvl[n] = d; byName[n][2].forEach(u => { if (typeof u === "string") walk(u, d + 1); }); };
+  walk(x.src[1], 0);
+  const depth = Math.max(...Object.values(lvl)), mcols = Array.from({ length: depth + 1 }, () => []);
+  Object.entries(lvl).forEach(([n, d]) => mcols[d].push(n));
+  const attrs = [], objs = [], edges = [["m", "s:" + x.src[1]]], oId = L => `o:${L.bd}:${L.fi}:${L.oi}`;
+  mcols.forEach(names => names.forEach(n => byName[n][2].forEach(u => { if (typeof u === "string") { if (lvl[u] !== undefined) edges.push(["s:" + n, "s:" + u]); } else { if (!attrs.includes(u[3])) attrs.push(u[3]); edges.push(["s:" + n, "a:" + u[3]]); } })));
+  attrs.sort((a, b) => { const p = LOC[a], q = LOC[b]; return p.bd.localeCompare(q.bd) || p.fi - q.fi || p.oi - q.oi || a - b; });
+  attrs.forEach(ai => { const L = LOC[ai], k = oId(L); if (!objs.some(o => o.k === k)) objs.push({ k, L }); edges.push(["a:" + ai, k]); });
+  const cols = [{ label: `Metric · ${mid}`, nodes: [mnode] }];
+  mcols.forEach((names, d) => cols.push({ label: d === 0 ? `Product measure · ${pid}` : "Builds on", nodes: names.map(n => ({ id: "s:" + n, title: n, sub: p.name, color: tvar(p.type), href: `#/products/${pid}`, tip: `${n}: ${byName[n][1]}` })) }));
+  cols.push({ label: "Taxonomy attributes", nodes: attrs.map(ai => { const L = LOC[ai], o = BD[L.bd].f[L.fi].o[L.oi]; return { id: "a:" + ai, title: A[ai].name, sub: o.name + (A[ai].cde ? " · CDE" : ""), color: gvar(L.bd), href: `#/d/${L.bd}/${L.fi}/${L.oi}/${ai}`, tip: `${A[ai].name}: ${A[ai].def}` }; }) });
+  cols.push({ label: "Business objects · Data Domains", nodes: objs.map(({ k, L }) => ({ id: k, title: BD[L.bd].f[L.fi].o[L.oi].name, sub: `${L.bd} ${BD[L.bd].short}`, color: gvar(L.bd), href: `#/d/${L.bd}/${L.fi}/${L.oi}` })) });
+  return { cols, edges, p, nAttr: attrs.length, nObj: objs.length, nMeas: Object.keys(lvl).length };
+}
+function trMetricHtml(mid, name) {
+  const m = SMX[mid], x = m && (m.metrics || []).find(y => y.n === name && !y.ref); if (!x) return "";
+  const t = trMetricModel(mid, x); if (!t) return `<p class="trnote">No trace: the product measure behind this metric is not in the catalog.</p>`;
+  const skip = t.cols.length > 4;
+  return trSvg(`M${mid}|${slug(name)}`, t.cols, t.edges, `Trace of the metric ${name} to the taxonomy`)
+    + `<p class="trnote">${t.nMeas ? `${esc(name)} publishes ${plural(t.nMeas, "measure")} of ${t.p.id} ${esc(t.p.name)}, whose formula reads ${plural(t.nAttr, "taxonomy attribute")} defined in ${plural(t.nObj, "business object")}.` : `${esc(name)} publishes an attribute that ${t.p.id} ${esc(t.p.name)} carries unchanged from the taxonomy.`}${skip ? " Dashed = a measure that reads an attribute directly while also building on other measures." : ""} Names open their pages.</p>`;
+}
+
+/* product: built from -> this product -> feeds (products and the semantic models that publish it) */
+const TRP = { pid: null, left: [], right: [], groups: new Set() };
+const trHub = p => p.type === "Master & Reference" && (p.down || []).length >= 40;
+const trUpOf = pid => (DPX[pid] ? DPX[pid].up : []).filter(u => DPX[u] && !DPX[u].bl && !trHub(DPX[u]));
+const trHubsOf = pid => (DPX[pid] ? DPX[pid].up : []).filter(u => DPX[u] && trHub(DPX[u]));
+const trDownOf = pid => DPX[pid] ? DPX[pid].down || [] : [];
+function trProductModel(pid) {
+  const specs = [], chainL = TRP.left, chainR = TRP.right;
+  for (let k = chainL.length - 1; k >= 0; k--) specs.push({ kind: "up", anchor: chainL[k], depth: k + 1, label: `Built from · ${chainL[k]}` });
+  specs.push({ kind: "up", anchor: pid, depth: 0, label: "Built from" });
+  specs.push({ kind: "self", anchor: pid, label: "This product" });
+  specs.push({ kind: "down", anchor: pid, depth: 0, label: "Feeds" });
+  chainR.forEach((y, k) => specs.push({ kind: "down", anchor: y, depth: k + 1, label: `Fed by · ${y}` }));
+  const types = new Set(), cols = specs.map((s, ci) => {
+    let nodes;
+    if (s.kind === "self") { const p = DPX[pid]; types.add(p.type); nodes = [{ id: `${ci}:${pid}`, title: p.name, sub: `${pid} · ${p.type}`, color: tvar(p.type), members: [pid], focus: true }]; }
+    else if (s.kind === "up") {
+      const chain = chainL[s.depth];
+      nodes = trProdCol(ci, trUpOf(s.anchor), `up:${s.anchor}`, TRP.groups, { act: q => trUpOf(q).length > 0, sel: q => q === chain });
+      nodes.forEach(n => { if (n.group) return; types.add(DPX[n.members[0]].type); const q = n.members[0];
+        n.action = () => { TRP.left = n.sel ? chainL.slice(0, s.depth) : chainL.slice(0, s.depth).concat(q); }; });
+    } else {
+      const chain = chainR[s.depth], P = DPX[s.anchor];
+      nodes = trProdCol(ci, trDownOf(s.anchor), `down:${s.anchor}`, TRP.groups, { act: q => trDownOf(q).length > 0 || !!PSM[q], sel: q => q === chain });
+      nodes.forEach(n => { if (n.group) return; types.add(DPX[n.members[0]].type); const q = n.members[0];
+        n.action = () => { TRP.right = n.sel ? chainR.slice(0, s.depth) : chainR.slice(0, s.depth).concat(q); }; });
+      const m = PSM[s.anchor];
+      if (m) { types.add("sm"); nodes.unshift({ id: `${ci}:sm:${m.id}`, title: m.name, sub: `${m.id} · semantic model${m.prop.includes(s.anchor) ? " (proposed)" : ""}`, color: smColor(m.id), href: `#/semantic/${m.id}`, members: [], sm: s.anchor }); }
+      else if (!viaSem(P)) { types.add("direct"); nodes.unshift({ id: `${ci}:direct`, title: "Direct delivery", sub: P.dlv.join(", "), color: "var(--g-found)", members: [], sm: s.anchor, tip: `Delivered straight to a system, file or dashboard: ${P.dlv.join(", ")}` }); }
+    }
+    nodes.forEach(n => { if (n.group) { types.add("group"); n.action = () => { if (n.sel) TRP.groups.delete(n.group); else TRP.groups.add(n.group); }; } });
+    return { label: s.label, nodes };
+  });
+  const edges = [];
+  for (let ci = 0; ci + 1 < cols.length; ci++) cols[ci].nodes.forEach(a => cols[ci + 1].nodes.forEach(b => {
+    const hit = b.sm ? a.members.includes(b.sm) : b.members.some(y => a.members.some(x => DPX[y].up.includes(x)));
+    if (hit) edges.push([a.id, b.id]); }));
+  const hubs = [...new Set([pid, ...chainL].flatMap(trHubsOf))].sort((a, b) => DPX[b].down.length - DPX[a].down.length);
+  return { cols, edges, types, hubs };
+}
+function trProductHtml(pid) {
+  if (TRP.pid !== pid) { TRP.pid = pid; TRP.left = []; TRP.right = []; TRP.groups = new Set(); }
+  const t = trProductModel(pid), key = `P${pid}`;
+  t.cols.forEach(c => c.nodes.forEach(n => { if (n.action) TRACT[`${key}|${n.id}`] = () => { n.action(); const box = document.getElementById("trprod"); if (box) box.innerHTML = trProductHtml(pid); }; }));
+  const strip = t.hubs.length ? `<div class="trstrip"><span>Shared masters it also reads, not drawn:</span>${t.hubs.map(h => `<a class="chip" href="#/products/${h}" title="Read by ${DPX[h].down.length} products"><span class="mono">${h}</span> ${esc(DPX[h].name)}</a>`).join("")}</div>` : "";
+  return trSvg(key, t.cols, t.edges, `Lineage of ${pid}: what it is built from, what it feeds and the semantic model that publishes it`)
+    + trLegend(t.types, `<span>+ follows the chain one more hop or opens a topic group · – folds it back · names open pages</span>`) + strip;
+}
+
+/* attribute: attribute -> products that read it -> measures that use it -> model columns and metrics */
+const TRA = { groups: new Set() };
+function trAttrModel(i) {
+  const pids = (PBYA[i] || []).map(id => DPX[id]).sort(dpOrder).map(p => p.id); if (!pids.length) return null;
+  const L = LOC[i], a = A[i], o = BD[L.bd].f[L.fi].o[L.oi], types = new Set(), key = `A${i}`;
+  const cols = [{ label: "Taxonomy attribute", nodes: [{ id: "a", title: a.name, sub: `${o.name} · ${L.bd} ${BD[L.bd].short}`, color: gvar(L.bd), href: `#/d/${L.bd}/${L.fi}/${L.oi}/${i}`, focus: true }] }];
+  const prods = trProdCol(1, pids, key, TRA.groups, {});
+  prods.forEach(n => { if (n.group) { types.add("group"); n.action = () => { if (n.sel) TRA.groups.delete(n.group); else TRA.groups.add(n.group); }; } else types.add(DPX[n.members[0]].type); });
+  const edges = prods.filter(n => n.members.length).map(n => ["a", n.id]), meas = [], sem = [];
+  prods.forEach(n => { if (n.group) return; const p = DPX[n.members[0]];
+    const set = new Set(p.m.filter(m => m[2].some(u => typeof u !== "string" && u[3] === i)).map(m => m[0]));
+    let grew = true; while (grew) { grew = false; p.m.forEach(m => { if (!set.has(m[0]) && m[2].some(u => typeof u === "string" && set.has(u))) { set.add(m[0]); grew = true; } }); }
+    p.m.filter(m => set.has(m[0])).forEach(m => { const id = `s:${p.id}:${m[0]}`; meas.push({ id, title: m[0], sub: `${p.id} ${p.name}`, color: tvar(p.type), href: `#/products/${p.id}`, pid: p.id, name: m[0], tip: `${m[0]}: ${m[1]}` }); edges.push([n.id, id]); }); });
+  const more = meas.length > 30 ? meas.splice(30) : [];
+  if (more.length) meas.push({ id: "s:more", title: `${more.length} more measures`, sub: "open the products to see them", color: "var(--muted)" });
+  (SMCOL[i] || []).forEach(([mid, tn, cn, tp]) => { const id = `c:${mid}:${tn}:${cn}`; types.add("sm");
+    if (!sem.some(s => s.id === id)) sem.push({ id, title: cn, sub: `${mid} · column of ${tn}`, color: smColor(mid), href: `#/semantic/${mid}`, tip: `${mid} ${SMX[mid].name}: column ${cn} of ${tn}, read from ${tp}` });
+    const pn = prods.find(n => n.members.includes(tp)); if (pn) edges.push([pn.id, id]); });
+  meas.forEach(mn => (SMMET[mn.pid + "/" + mn.name] || []).forEach(([mid, name]) => { const id = `k:${mid}:${name}`; types.add("sm");
+    if (!sem.some(s => s.id === id)) sem.push({ id, title: name, sub: `${mid} · metric`, color: smColor(mid), href: `#/semantic/${mid}/m/${slug(name)}`, tip: `${name}: a metric of ${mid} ${SMX[mid].name}` });
+    edges.push([mn.id, id]); }));
+  cols.push({ label: "Products that read it", nodes: prods });
+  cols.push({ label: "Measures that use it", nodes: meas });
+  cols.push({ label: "Semantic layer", nodes: sem });
+  if (!meas.length && !sem.length) cols.splice(2, 2, { label: "Measures and semantic layer", nodes: [{ id: "none", title: "No measure or model yet", sub: "carried as an input only", color: "var(--muted)" }] });
+  return { cols, edges, types, nP: pids.length, nM: meas.filter(m => m.pid).length + more.length, nS: sem.length };
+}
+function trAttrHtml(i) {
+  const t = trAttrModel(i); if (!t) return `<p class="trnote">No data product reads this attribute yet.</p>`;
+  const key = `A${i}`;
+  t.cols.forEach(c => c.nodes.forEach(n => { if (n.action) TRACT[`${key}|${n.id}`] = () => { n.action(); document.querySelectorAll(`[data-trbox="${key}"]`).forEach(b => b.innerHTML = trAttrHtml(i)); }; }));
+  return trSvg(key, t.cols, t.edges, `Trace of the attribute ${A[i].name} into data products and the semantic layer`)
+    + trLegend(t.types, `<span>+ opens a topic group · – closes it · names open pages · dashed = a model column read straight from the product</span>`)
+    + `<p class="trnote">Read by ${plural(t.nP, "data product")}, used in ${plural(t.nM, "measure")}, and reaching the semantic layer in ${plural(t.nS, "place")}${t.nP > TR_GROUP ? "; measures are shown for the products opened from their topic groups" : ""}.</p>`;
+}
+const trAttrBtn = i => PBYA[i] ? `<button type="button" class="trbtn" data-tr="attr" data-i="${i}" aria-pressed="false" title="Trace this attribute into the data products and the semantic layer">Trace · ${PBYA[i].length}</button>` : "";
+function trToggle(b) {
+  const open = b.getAttribute("aria-pressed") === "true"; b.setAttribute("aria-pressed", String(!open));
+  const html = () => b.dataset.tr === "metric" ? trMetricHtml(b.dataset.m, b.dataset.n) : trAttrHtml(+b.dataset.i);
+  const box = b.dataset.box ? document.querySelector(`[data-trbox="${b.dataset.box}"]`) : null;
+  if (box) { box.innerHTML = open ? "" : html(); return; }
+  const tr = b.closest("tr"); if (!tr) return;
+  const next = tr.nextElementSibling; if (next && next.classList.contains("trrow")) next.remove();
+  if (open) return;
+  const span = tr.closest("table").querySelector("thead tr").children.length || tr.children.length;
+  tr.insertAdjacentHTML("afterend", `<tr class="trrow"><td colspan="${span}"><div data-trbox="${b.dataset.tr === "metric" ? `M${b.dataset.m}|${slug(b.dataset.n)}` : `A${b.dataset.i}`}">${html()}</div></td></tr>`);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest(".trbtn[data-tr]"); if (b) { trToggle(b); return; }
+  const n = e.target.closest(".trn.act"); if (n && !e.target.closest("a")) { const f = TRACT[n.dataset.id]; if (f) f(); }
+});
+document.addEventListener("keydown", e => { if (e.key !== "Enter") return; const n = e.target.closest && e.target.closest(".trn.act"); if (n) { const f = TRACT[n.dataset.id]; if (f) f(); } });
+document.addEventListener("mouseover", e => { const n = e.target.closest(".trn"); if (!n) return; const id = n.dataset.id; n.closest("svg").querySelectorAll(".tre").forEach(p => p.classList.toggle("on", p.dataset.a === id || p.dataset.b === id)); });
+document.addEventListener("mouseout", e => { const n = e.target.closest(".trn"); if (n) n.closest("svg").querySelectorAll(".tre.on").forEach(p => p.classList.remove("on")); });
 
 /* ---------- guide and method ---------- */
 const objLink = (n, name) => { const b = BD[n]; for (let fi = 0; fi < b.f.length; fi++) { const oi = b.f[fi].o.findIndex(o => o.name === name); if (oi >= 0) return `<a href="#/d/${n}/${fi}/${oi}">${n} ${esc(name)}</a>`; } return `${n} ${esc(name)}`; };
