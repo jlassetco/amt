@@ -423,6 +423,30 @@ tr.trrow > td { padding: 10px 12px 14px; background: var(--sunk); }
 .trstrip .chip { font-size: 12px; }
 .trbox:empty { display: none; }
 .xpanel .trwrap { padding: 4px; }
+/* aggregate overview: Data Domains -> product topics -> semantic layer, widths by attribute count */
+.ovbar { margin-bottom: 10px; }
+.ovbar .lab { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.ovbar .grp { display: inline-flex; gap: 6px; align-items: center; margin-right: 12px; }
+.ovwrap { position: relative; overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px; }
+.ovsvg { display: block; width: 100%; min-width: 980px; max-width: 1240px; height: auto; margin-inline: auto; font-family: var(--f-body); }
+.ovsvg .hd { font-size: var(--dg-label); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; fill: var(--muted); }
+.ovsvg .ln { fill: var(--ink); opacity: .13; }
+.ovsvg .ln.on { opacity: .42; }
+.ovsvg .ln.off { opacity: .05; }
+.ovsvg .nd { cursor: default; }
+.ovsvg .nd.go { cursor: pointer; }
+.ovsvg .nd rect { stroke: var(--surface); stroke-width: 2px; paint-order: stroke; }
+.ovsvg .nd.on rect { stroke: var(--ink); }
+.ovsvg .lb { font-size: var(--dg-text); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.ovsvg .lb tspan.n { fill: var(--muted); font-variant-numeric: tabular-nums; }
+.ovsvg .ld { stroke: var(--line); stroke-width: 1; fill: none; }
+.ovtip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.4; padding: 6px 9px; border-radius: 7px; box-shadow: var(--shadow); max-width: 300px; z-index: 5; display: none; }
+.ovtip b { display: block; font-weight: 600; font-size: 13.5px; }
+.ovtip span { opacity: .8; }
+.ovcap { color: var(--muted); font-size: 13.5px; max-width: var(--measure); margin: 10px 0 0; }
+.ovtbl table { min-width: 720px; }
+.ovtbl td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ovtbl .bar { display: inline-block; height: 8px; border-radius: 2px; background: var(--ink); opacity: .35; vertical-align: middle; margin-right: 8px; }
 /* guide */
 .gjump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .gsec { scroll-margin-top: 84px; }
@@ -642,6 +666,7 @@ h1, h2, h3, h4 { font-stretch: 75%; font-weight: 700; letter-spacing: 0; }
       <details class="navmenu" id="navref"><summary>Reference</summary><div class="menu">
         <a href="#/capabilities">Capabilities<small>What the firm does, and the Data Domain behind each capability</small></a>
         <a href="#/entities">Core entities<small>Who masters each shared concept</small></a>
+        <a href="#/flows">Data flows<small>Where each area's attributes go: data products by topic, then the semantic layer</small></a>
         <a href="#/lists">Shared code lists<small>Enterprise value lists and stewards</small></a></div></details>
     </nav>
     <div class="scope" id="scope" role="group" aria-label="View"><button type="button" id="scopeall" aria-pressed="true" title="All Data Domains, by area">Enterprise</button><select id="scopesel" aria-label="Area view" title="One area and Foundations only"></select></div>
@@ -724,7 +749,7 @@ function route() {
   $("#results").hidden = true;
   document.querySelectorAll("#nav a").forEach(a => a.removeAttribute("aria-current"));
   const cur = sel => { const a = $(`#nav a[href="${sel}"]`); if (a) a.setAttribute("aria-current", "page"); };
-  $("#navref").open = false; $("#navref").classList.toggle("cur", h[0] === "entities" || h[0] === "lists" || h[0] === "capabilities");
+  $("#navref").open = false; $("#navref").classList.toggle("cur", h[0] === "entities" || h[0] === "lists" || h[0] === "capabilities" || h[0] === "flows");
   if (h[0] === "view" || h[0] === "distribution" || h[0] === "enterprise") { setScope(h[0] === "view" ? h[1] : h[0] === "distribution" ? DIS : "all"); location.replace("#/"); return; }
   if (h[0] === "d" && BD[h[1]]) { pageDomain(h[1], h[2], h[3], h[4], h[5] === "trace"); }
   else if (h[0] === "area" && AREA[h[1]]) { cur("#/"); pageArea(h[1]); }
@@ -734,6 +759,7 @@ function route() {
   else if (h[0] === "lists") { cur("#/lists"); pageLists(h[1]); }
   else if (h[0] === "products") { cur("#/products"); h[1] ? pageProduct(h[1]) : pageProducts(); }
   else if (h[0] === "semantic") { cur("#/semantic"); h[1] === "metrics" ? pageMetrics() : h[1] ? pageSemModel(h[1], h[2] === "m" ? h[3] : "") : pageSemantic(); }
+  else if (h[0] === "flows") { cur("#/flows"); pageFlows(h[1]); }
   else if (h[0] === "guide") { cur("#/guide"); pageGuide(h[1]); }
   else { cur("#/"); SCOPE !== "all" ? pageArea(SCOPE, true) : pageAreas(); }
 }
@@ -1003,7 +1029,7 @@ function pageArea(id, home) {
       <div class="mapwrap stack"><div class="map-scroll wide" id="mapsvg">${mapSVG()}</div><div class="panel-frame"><aside class="panel" id="mappanel" aria-live="polite"></aside></div></div></section>
     <section><div class="sec-h"><h2>Data Domains</h2><p>${home ? esc(a.view.bands.replace(/\.$/, "")) : "The area's value-chain bands, left to right as on the map"}${FDN && !a.band ? `, and the ${esc(FDN.name)} band every area relies on` : ""}.</p></div>
       <div class="groups">${a.bands.map(g => bandGroup(g, a.name)).join("")}${FDN && !a.band ? FDN.bands.map(g => bandGroup(g, "Shown on every area view")).join("") : ""}</div></section>
-    <section><div class="sec-h"><h2>Cross-area flows</h2><p>Every flow into and out of ${esc(a.name)}, with the Data Domain links behind it. A count is the number of attributes that reference, or copy, a concept mastered in the other area.</p></div>
+    <section><div class="sec-h"><h2>Cross-area flows</h2><p>Every flow into and out of ${esc(a.name)}, with the Data Domain links behind it. A count is the number of attributes that reference, or copy, a concept mastered in the other area. <a href="#/flows/${id}">Data flows</a> follows ${esc(a.name)}'s attributes onward, through the data products to the semantic layer.</p></div>
       <div class="two dp2"><div class="box conn"><h3>Takes in from</h3><p>Areas whose data ${esc(a.name)} references.</p>${flowList(ins, "in")}</div><div class="box conn"><h3>Provides to</h3><p>Areas that reference data mastered in ${esc(a.name)}.</p>${flowList(outs, "out")}</div></div></section>`;
   wireMap();
   window.scrollTo(0, 0);
@@ -1277,6 +1303,7 @@ function pageLists(sl) {
 
 /* ---------- data products ---------- */
 // a product is published through the semantic layer when its delivery lists the BI semantic model; the rest go direct
+const SEM = "BI semantic model";
 const viaSem = p => !p.bl && p.dlv.includes(SEM);
 const routeBadge = (p, link) => { const m = PSM[p.id];
   if (!viaSem(p)) return '<span class="badge dir" title="Delivered straight to a system, file or dashboard">Direct delivery</span>';
@@ -1778,9 +1805,122 @@ document.addEventListener("keydown", e => { if (e.key !== "Enter") return; const
 document.addEventListener("mouseover", e => { const n = e.target.closest(".trn"); if (!n) return; const id = n.dataset.id; n.closest("svg").querySelectorAll(".tre").forEach(p => p.classList.toggle("on", p.dataset.a === id || p.dataset.b === id)); });
 document.addEventListener("mouseout", e => { const n = e.target.closest(".trn"); if (n) n.closest("svg").querySelectorAll(".tre.on").forEach(p => p.classList.remove("on")); });
 
+/* ---------- aggregate overview ---------- */
+// One flow chart in three stages, drawn from the catalog: the attributes of the Data Domains (by area, or one area's
+// domains) are read by data products, shown by catalog topic, and reach consumers through the semantic models that
+// publish those products or by direct delivery. Every width is an attribute count: on the left the attributes a
+// product reads from a domain, on the right the attributes a model exposes as columns (or, for direct delivery, the
+// attributes the product carries). Filters: area and product tier. A table view carries the same numbers.
+const OV = { read: {}, out: {} };                  // read["dom|pid"] = attributes; out[pid] = { mid|direct|pending: { dom: attributes } }
+DP.p.forEach(p => { p.in.forEach(x => { const k = `${x[0]}|${p.id}`; OV.read[k] = (OV.read[k] || 0) + x[3].length; }); });
+{ const seen = new Set();
+  SMD.m.forEach(m => (m.tables || []).forEach(t => t.d.concat(t.f).forEach(c => { if (c[2] < 0 || !DPX[t.p]) return; const k = `${t.p}|${m.id}|${c[2]}`; if (seen.has(k)) return; seen.add(k);
+    const d = LOC[c[2]].bd, o = (OV.out[t.p] ||= {}), oo = (o[m.id] ||= {}); oo[d] = (oo[d] || 0) + 1; })));
+  DP.p.forEach(p => { if (p.bl) return; const dest = viaSem(p) ? (PSM[p.id] ? "" : "pending") : "direct"; if (!dest) return;
+    const o = (OV.out[p.id] ||= {}), oo = (o[dest] ||= {}); p.in.forEach(x => { oo[x[0]] = (oo[x[0]] || 0) + x[3].length; }); }); }
+const OV_W = 1180, OV_H = 600, OV_NW = 12, OV_TOP = 34, OV_BOT = 10, OV_GAP = 6, OV_X = [236, 588, 940], OV_LH = 15;
+function ovModel(area, tier) {
+  const doms = area === "all" ? null : new Set(AREA[area].doms);
+  const dOK = n => !doms || doms.has(n), key1 = n => area === "all" ? BD[n].area : n;
+  const l1 = {}, l2 = {}, nP = new Set();
+  DP.p.forEach(p => { if (p.bl || (tier !== "all" && p.tier !== tier)) return;
+    p.in.forEach(x => { if (!dOK(x[0])) return; const k = `${key1(x[0])}|${p.topic}`; l1[k] = (l1[k] || 0) + x[3].length; nP.add(p.id); });
+    Object.entries(OV.out[p.id] || {}).forEach(([dest, byDom]) => Object.entries(byDom).forEach(([n, v]) => { if (!dOK(n)) return; const k = `${p.topic}|${dest}`; l2[k] = (l2[k] || 0) + v; })); });
+  const inT = {}, outT = {};
+  Object.entries(l1).forEach(([k, v]) => { const [a, b] = k.split("|"); outT[a] = (outT[a] || 0) + v; inT[b] = (inT[b] || 0) + v; });
+  Object.entries(l2).forEach(([k, v]) => { const [a, b] = k.split("|"); outT[a] = (outT[a] || 0) + v; inT[b] = (inT[b] || 0) + v; });
+  const node = (id, name, sub, color, href) => ({ id, name, sub, color, href, in: inT[id] || 0, out: outT[id] || 0 });
+  const c1 = (area === "all" ? D.areas.map(a => node(a.id, a.name, a.band ? "band" : "area", avar(a.id), `#/area/${a.id}`))
+                             : AREA[area].doms.map(n => node(n, BD[n].short, n, gvar(n), `#/d/${n}`))).filter(n => n.out);
+  const c2 = DP.topics.map(t => node(t[0], t[1], t[2], "var(--ink)", "")).filter(n => n.in || n.out);
+  const c3 = SMD.m.map(m => node(m.id, m.name, `${m.id} · semantic model`, "var(--g-semantic)", `#/semantic/${m.id}`))
+    .concat([node("direct", "Direct delivery", "to a system, file or dashboard", "var(--g-found)", ""), node("pending", "Not yet in a model", "listed for the semantic layer", "var(--muted)", "")]).filter(n => n.in);
+  const links = Object.entries(l1).map(([k, v]) => ({ s: k.split("|")[0], t: k.split("|")[1], v, stage: 0 }))
+    .concat(Object.entries(l2).map(([k, v]) => ({ s: k.split("|")[0], t: k.split("|")[1], v, stage: 1 })));
+  return { cols: [c1, c2, c3], links, nP: nP.size, read: Object.values(l1).reduce((s, v) => s + v, 0), exposed: Object.entries(l2).filter(([k]) => !k.endsWith("|direct") && !k.endsWith("|pending")).reduce((s, [, v]) => s + v, 0), direct: Object.entries(l2).filter(([k]) => k.endsWith("|direct")).reduce((s, [, v]) => s + v, 0) };
+}
+function ovLayout(m) {
+  const avail = OV_H - OV_TOP - OV_BOT, size = n => Math.max(n.in, n.out);
+  const scale = Math.min(...m.cols.map(c => (avail - OV_GAP * (c.length - 1)) / Math.max(1, c.reduce((s, n) => s + size(n), 0))));
+  const pos = {};
+  m.cols.forEach((c, ci) => { const tot = c.reduce((s, n) => s + Math.max(3, size(n) * scale), 0) + OV_GAP * (c.length - 1); let y = OV_TOP + (avail - tot) / 2;
+    c.forEach((n, i) => { const h = Math.max(3, size(n) * scale); pos[n.id] = { x: OV_X[ci], y, h, ci, i, so: 0, to: 0 }; y += h + OV_GAP; }); });
+  const order = {}; m.cols.forEach(c => c.forEach((n, i) => order[n.id] = i));
+  const links = m.links.slice().sort((a, b) => a.stage - b.stage || order[a.s] - order[b.s] || order[a.t] - order[b.t]);
+  links.forEach(l => { const s = pos[l.s], t = pos[l.t]; if (!s || !t) return; l.th = Math.max(1, l.v * scale); l.sy = s.y + s.so; s.so += l.th; });
+  links.slice().sort((a, b) => a.stage - b.stage || order[a.t] - order[b.t] || order[a.s] - order[b.s]).forEach(l => { const t = pos[l.t]; if (!t || !pos[l.s]) return; l.ty = t.y + t.to; t.to += l.th; });
+  // labels: one per node, pushed apart so they never overlap, with a leader when displaced
+  m.cols.forEach(c => { const ys = c.map(n => pos[n.id].y + pos[n.id].h / 2); let y = -Infinity;
+    const out = ys.map(v => (y = Math.max(y + OV_LH, v)));
+    for (let i = out.length - 1, lim = OV_H - 4; i >= 0; i--) { out[i] = Math.min(out[i], lim); lim = out[i] - OV_LH; }
+    c.forEach((n, i) => pos[n.id].ly = out[i]); });
+  return { pos, links, scale };
+}
+function ovSvg(m, L, key) {
+  const cut = (s, n) => s.length > n ? s.slice(0, n - 1) + "…" : s, pos = L.pos;
+  const heads = ["Data Domains" + (m.cols[0].length && m.cols[0][0].sub === "area" ? " by area" : ""), "Data products by topic", "Semantic layer"];
+  const link = l => { const s = pos[l.s], t = pos[l.t]; if (!s || !t) return ""; const x0 = s.x + OV_NW, x1 = t.x, mx = (x0 + x1) / 2, a = l.sy, b = l.ty, th = l.th;
+    return `<path class="ln" data-s="${esc(l.s)}" data-t="${esc(l.t)}" data-v="${l.v}" d="M${x0},${a} C${mx},${a} ${mx},${b} ${x1},${b} v${th} C${mx},${b + th} ${mx},${a + th} ${x0},${a + th} Z"/>`; };
+  const node = (n, ci) => { const p = pos[n.id], right = ci > 0, lx = right ? p.x + OV_NW + 8 : p.x - 8, anchor = right ? "start" : "end", yc = p.y + p.h / 2;
+    const leader = Math.abs(p.ly - yc) > 7 ? `<path class="ld" d="M${right ? p.x + OV_NW + 2 : p.x - 2},${yc} L${right ? lx - 3 : lx + 3},${p.ly}"/>` : "";
+    const val = ci === 0 ? n.out : n.in;
+    const text = `<text class="lb" x="${lx}" y="${p.ly + 4}" text-anchor="${anchor}">${esc(cut(n.name, 30))} <tspan class="n">${fmt(val)}</tspan></text>`;
+    return `<g class="nd${n.href ? " go" : ""}" data-id="${esc(n.id)}" data-ci="${ci}"><rect x="${p.x}" y="${p.y}" width="${OV_NW}" height="${p.h}" rx="2" fill="${n.color}"/>${leader}${n.href ? `<a href="${esc(n.href)}">${text}</a>` : text}<title>${esc(n.name)} · ${esc(n.sub)}</title></g>`; };
+  return `<svg class="ovsvg" viewBox="0 0 ${OV_W} ${OV_H}" role="img" aria-label="Attributes flow from the Data Domains on the left through data products, by topic, to the semantic models and direct deliveries on the right; widths are attribute counts">
+    ${heads.map((h, i) => `<text class="hd" x="${OV_X[i] + (i === 0 ? OV_NW : 0)}" y="18" text-anchor="${i === 0 ? "end" : "start"}">${esc(h)}</text>`).join("")}
+    ${L.links.map(link).join("")}${m.cols.map((c, ci) => c.map(n => node(n, ci)).join("")).join("")}</svg>`;
+}
+function ovTable(m) {
+  const name = {}; m.cols.forEach(c => c.forEach(n => name[n.id] = n.name));
+  const mx = Math.max(...m.links.map(l => l.v), 1);
+  const rows = m.links.slice().sort((a, b) => a.stage - b.stage || b.v - a.v).map(l => `<tr><td>${l.stage === 0 ? "Read by products" : "Reaches consumers"}</td><td>${esc(name[l.s] || l.s)}</td><td>${esc(name[l.t] || l.t)}</td><td class="v"><span class="bar" style="width:${Math.max(2, 90 * l.v / mx).toFixed(0)}px"></span>${fmt(l.v)}</td></tr>`).join("");
+  return `<div class="tbl ovtbl" style="border:1px solid var(--line);border-radius:12px"><table><thead><tr><th>Stage</th><th>From</th><th>To</th><th style="text-align:right">Attributes</th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="muted">Nothing in this selection.</td></tr>'}</tbody></table></div>`;
+}
+function ovCaption(m, st) {
+  const where = st.area === "all" ? `the ${D.bds.length} Data Domains` : `${esc(AREA[st.area].name)}'s ${plural(AREA[st.area].doms.length, "Data Domain")}`;
+  const tier = st.tier === "all" ? "data products" : `${st.tier.toLowerCase()} data products`;
+  return `<p class="ovcap">${fmt(m.read)} attribute reads from ${where} by ${plural(m.nP, tier.replace(/s$/, ""))}, grouped by topic. ${fmt(m.exposed)} attributes reach consumers as columns of the semantic models and ${fmt(m.direct)} by direct delivery. A width is an attribute count; hover a band for the number, or switch to the table.</p>`;
+}
+function ovHtml(st, key, m) {
+  const L = ovLayout(m);
+  const tierBtn = t => `<button type="button" class="xbtn" data-ov="tier" data-v="${t}" aria-pressed="${st.tier === t}">${t === "all" ? "All products" : t}</button>`;
+  const bar = `<div class="xbar ovbar">${st.fixed ? "" : `<span class="grp"><span class="lab">Domains</span><select class="xbtn" data-ov="area" aria-label="Area">${[["all", "All areas"]].concat(D.areas.map(a => [a.id, a.name])).map(([v, n]) => `<option value="${v}"${st.area === v ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></span>`}
+    <span class="grp"><span class="lab">Products</span>${["all", "Foundational", "Consumer-aligned"].map(tierBtn).join("")}</span>
+    <span class="grp" style="margin-left:auto"><button type="button" class="xbtn" data-ov="table" aria-pressed="${st.table}">${st.table ? "Show the chart" : "Show as table"}</button></span></div>`;
+  const body = !m.links.length ? `<p class="muted">No data product reads these domains in this selection.</p>` : st.table ? ovTable(m) : `<div class="ovwrap">${ovSvg(m, L, key)}<div class="ovtip" role="status"></div></div>`;
+  return bar + body + ovCaption(m, st);
+}
+function ovMount(el, st) {
+  if (!el) return;
+  const m = ovModel(st.area, st.tier), names = {}; m.cols.forEach(c => c.forEach(n => names[n.id] = n.name));
+  el.innerHTML = ovHtml(st, el.id, m);
+  el.onclick = e => { const b = e.target.closest("[data-ov]"); if (!b || b.tagName === "SELECT") return;
+    if (b.dataset.ov === "tier") st.tier = b.dataset.v; else if (b.dataset.ov === "table") st.table = !st.table; else return;
+    ovMount(el, st); };
+  el.onchange = e => { const s = e.target.closest("select[data-ov=area]"); if (s) { st.area = s.value; ovMount(el, st); } };
+  const wrap = el.querySelector(".ovwrap"), tip = el.querySelector(".ovtip"); if (!wrap) return;
+  const svg = wrap.querySelector("svg"), links = [...svg.querySelectorAll(".ln")];
+  const show = (html, e) => { tip.innerHTML = html; tip.style.display = "block"; const r = wrap.getBoundingClientRect(); let x = e.clientX - r.left + 14, y = e.clientY - r.top + 14; if (x + 300 > r.width) x = Math.max(4, x - 320); tip.style.left = x + "px"; tip.style.top = y + "px"; };
+  const clear = () => { tip.style.display = "none"; links.forEach(p => p.classList.remove("on", "off")); svg.querySelectorAll(".nd.on").forEach(n => n.classList.remove("on")); };
+  svg.addEventListener("pointermove", e => { const ln = e.target.closest(".ln"), nd = e.target.closest(".nd");
+    if (ln) { links.forEach(p => p.classList.toggle("on", p === ln)); show(`<b>${fmt(+ln.dataset.v)} attributes</b><span>${esc(names[ln.dataset.s])} → ${esc(names[ln.dataset.t])}</span>`, e); }
+    else if (nd) { const id = nd.dataset.id, ci = +nd.dataset.ci; links.forEach(p => { const hit = p.dataset.s === id || p.dataset.t === id; p.classList.toggle("on", hit); p.classList.toggle("off", !hit); }); svg.querySelectorAll(".nd.on").forEach(n => n.classList.remove("on")); nd.classList.add("on");
+      const n = m.cols[ci].find(x => x.id === id); show(`<b>${esc(n.name)}</b><span>${esc(n.sub)}</span><span>${ci > 0 ? `${fmt(n.in)} attributes in` : ""}${ci === 1 ? " · " : ""}${ci < 2 ? `${fmt(n.out)} attributes out` : ""}</span>`, e); }
+    else clear(); });
+  svg.addEventListener("pointerleave", clear);
+}
+const OVG = { area: "all", tier: "all", table: false };
+function pageFlows(area) {
+  if (area && AREA[area]) OVG.area = area;
+  $("#main").innerHTML = `<div class="hero" style="padding-bottom:0"><span class="eyebrow">Reference</span><h1>Data flows</h1>
+    <p class="lede">How the taxonomy's attributes move into data products and on to the people and systems that use them, with the catalog's actual counts. On the left, the Data Domains by area, or one area's own domains; in the middle, the data products that read them, grouped by topic; on the right, the semantic models that publish those products and the direct deliveries that bypass the semantic layer. Every width is an attribute count.</p></div>
+    <section style="padding-top:20px"><div id="ovpage"></div></section>`;
+  ovMount($("#ovpage"), OVG);
+  window.scrollTo(0, 0);
+}
+
 /* ---------- guide and method ---------- */
 const objLink = (n, name) => { const b = BD[n]; for (let fi = 0; fi < b.f.length; fi++) { const oi = b.f[fi].o.findIndex(o => o.name === name); if (oi >= 0) return `<a href="#/d/${n}/${fi}/${oi}">${n} ${esc(name)}</a>`; } return `${n} ${esc(name)}`; };
-const SEM = "BI semantic model";
 function flowSVG() {
   const num = (x, y, t) => `<circle class="f-n" cx="${x}" cy="${y}" r="11"/><text class="f-nt" x="${x}" y="${y + 4.5}">${t}</text>`;
   const prod = (x, y, id, label) => `<text class="id" x="${x}" y="${y}">${id}</text><text class="xs" x="${x}" y="${y + 14}">${label}</text>`;
@@ -1874,7 +2014,7 @@ function pageGuide(sec) {
     <section class="gsec" id="g-flow"><div class="sec-h"><h2>From taxonomy to consumption</h2><p>The operating model for turning definitions into the numbers people use.</p></div>
       <p class="gintro">The taxonomy is not the first step in a pipeline. It governs every layer. Data starts in source systems and moves through data products to the people and systems that use it. At each step, the taxonomy says what the data means and who is accountable for it.</p>
       <div class="flowwrap">${flowSVG()}</div>
-      <p class="flowcap">Data moves left to right; meaning moves top to bottom. Products used for analysis are published through the semantic layer. Others go straight into a workflow or a regulatory output, because their consumer is a system or a process rather than an analyst. Both paths take their numbers from the same certified products.</p>
+      <p class="flowcap">Data moves left to right; meaning moves top to bottom. Products used for analysis are published through the semantic layer. Others go straight into a workflow or a regulatory output, because their consumer is a system or a process rather than an analyst. Both paths take their numbers from the same certified products. The <a href="#/flows">Data flows</a> page shows this movement with the catalog's actual attribute counts.</p>
       <div class="gprin num" style="margin-top:22px">
         <div><b><span class="gnum">1</span>The taxonomy governs every layer</b><p>Sources are mapped to its attributes, products trace lineage to them, the semantic layer takes its business names and metric definitions from it, and the business glossary shows it to consumers. Products send taxonomy gaps back to the owning domain.</p></div>
         <div><b><span class="gnum">2</span>Data products have two tiers</b><p>Foundational products conform a record or a number once. Consumer-aligned products build on them. The semantic layer reads from both tiers.</p></div>
