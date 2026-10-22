@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Net Flows Product Chain</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Layout: one wide left-to-right flow diagram (sources → foundational → consumer-aligned → semantic model),
+     a question tracer above it that lights the path, and product cards by tier below. KPMG deck palette. */
+  :root {
+    --bg: #FFFFFF;
+    --fg: #1A2B3C;
+    --muted: #535E6C;
+    --surface: #EEF1F8;
+    --line: #C9D1DE;
+    --cobalt: #0C233C;
+    --blue: #1E49E2;       /* taxonomy */
+    --green: #00796F;      /* foundational data products */
+    --teal: #0077A8;       /* consumer-aligned products and the semantic model */
+    --magenta: #C8166F;    /* questions, the analytics layer */
+    --on-color: #FFFFFF;
+    --dim: 0.22;
+    --font: Arial, Helvetica, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0B1726; --fg: #EEF1F8; --muted: #A7B3C4; --surface: #15253B; --line: #2C3E58;
+      --cobalt: #0C233C; --blue: #4F78FF; --green: #1E9E92; --teal: #2E9BD0; --magenta: #E8469A;
+      --on-color: #FFFFFF; --dim: 0.18; color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0B1726; --fg: #EEF1F8; --muted: #A7B3C4; --surface: #15253B; --line: #2C3E58;
+    --cobalt: #0C233C; --blue: #4F78FF; --green: #1E9E92; --teal: #2E9BD0; --magenta: #E8469A;
+    --on-color: #FFFFFF; --dim: 0.18; color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font-family: var(--font); line-height: 1.45;
+         padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; }
+  main { max-width: 1240px; margin: 0 auto; display: grid; gap: 28px; }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); margin: 0 0 8px; }
+  h1 { font-size: clamp(24px, 3.4vw, 34px); line-height: 1.15; margin: 0 0 10px; color: var(--fg); text-wrap: balance; }
+  .lede { color: var(--muted); margin: 0; font-size: 15px; }
+  h2 { font-size: 18px; margin: 0 0 10px; }
+  .tracer { display: grid; gap: 10px; }
+  .tracer p { margin: 0; color: var(--muted); font-size: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font: 700 13px var(--font); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
+          padding: 8px 14px; cursor: pointer; text-align: left; }
+  .chip[aria-pressed="true"] { background: var(--magenta); border-color: var(--magenta); color: var(--on-color); }
+  .chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .chip .num { font-weight: 400; opacity: .8; margin-left: 6px; }
+  .trace-note .step { display: inline-block; margin-right: 14px; }
+  .trace-note .step b { color: var(--muted); font-weight: 700; }
+  .wq { display: grid; gap: 12px; }
+  .wq p { margin: 0; color: var(--muted); font-size: 14px; }
+  .tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 720px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface); }
+  td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 3px; background: var(--surface); color: var(--fg); white-space: nowrap; }
+  td .tag.in { background: var(--green); color: var(--on-color); }
+  td .tag.out { background: var(--teal); color: var(--on-color); }
+  td .tag.no { background: var(--surface); color: var(--muted); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+  .trace-note { min-height: 1.4em; font-size: 14px; }
+  .trace-note strong { color: var(--magenta); }
+  figure { margin: 0; }
+  .scroller { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+  svg { display: block; width: 100%; min-width: 980px; height: auto; font-family: var(--font); }
+  figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  /* diagram tokens */
+  .node rect, .node path { transition: opacity .2s; }
+  .node text { fill: var(--fg); }
+  .node.filled text { fill: var(--on-color); }
+  .node .sub { font-size: 11px; }
+  .node.filled .sub { fill: var(--on-color); opacity: .85; }
+  .node:not(.filled) .sub { fill: var(--muted); }
+  .src rect { fill: var(--surface); stroke: var(--line); }
+  .tax rect { fill: var(--blue); }
+  .found rect { fill: var(--green); }
+  .cons rect { fill: var(--bg); stroke: var(--teal); stroke-width: 1.6; }
+  .cons text { fill: var(--fg); }
+  .sm rect { fill: var(--teal); }
+  .mst rect { fill: var(--surface); stroke: var(--line); }
+  .edge { fill: none; stroke: var(--muted); stroke-width: 1.4; marker-end: url(#arrow); transition: opacity .2s; }
+  .edge.strong { stroke: var(--fg); stroke-width: 2; }
+  .edge.tax { stroke: var(--blue); stroke-dasharray: 5 4; }
+  .elabel { font-size: 11px; fill: var(--muted); }
+  .band { font-size: 11px; font-weight: 700; letter-spacing: .1em; fill: var(--muted); }
+  .dim { opacity: var(--dim); }
+  .lit rect { filter: drop-shadow(0 0 6px rgba(200, 22, 111, .55)); }
+  .lit.cons rect { stroke: var(--magenta); stroke-width: 2.4; }
+  .edge.lit { stroke: var(--magenta); stroke-width: 2.4; marker-end: url(#arrow-lit); }
+  #arrow path { fill: var(--muted); } #arrow-lit path { fill: var(--magenta); }
+  .rail rect.bg { fill: var(--surface); stroke: var(--line); }
+  .rail .title { font-size: 11px; font-weight: 700; letter-spacing: .1em; fill: var(--muted); }
+  .rail .name { font-size: 11.5px; font-weight: 700; fill: var(--fg); }
+  .rail .obj { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: var(--fg); }
+  .rail .note { font-size: 10px; fill: var(--muted); }
+  .dot { stroke: var(--bg); stroke-width: 1.5; }
+  .node .obj { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: var(--on-color); opacity: .9; }
+  .sw.bronze { background: #B87333; } .sw.silver { background: #8A94A6; } .sw.gold { background: #C9A227; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px 22px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .sw { width: 14px; height: 14px; border-radius: 2px; display: inline-block; }
+  .sw.tax { background: var(--blue); } .sw.found { background: var(--green); }
+  .sw.cons { border: 2px solid var(--teal); box-sizing: border-box; } .sw.sm { background: var(--teal); }
+  .sw.src { background: var(--surface); border: 1px solid var(--line); box-sizing: border-box; }
+  .sw.q { background: var(--magenta); }
+  /* product cards */
+  .tier { display: grid; gap: 12px; }
+  .tier-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .tier-head h2 { margin: 0; }
+  .tier-head .owner { font-size: 13px; color: var(--muted); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border-radius: 6px; padding: 14px 16px; min-width: 0; border-top: 4px solid var(--green); }
+  .card.cons { border-top-color: var(--teal); }
+  .card.mst { border-top-color: var(--line); }
+  .card.sm { border-top-color: var(--teal); background: var(--cobalt); color: #FFFFFF; }
+  .card.sm .code, .card.sm .row b { color: #A7B3C4; }
+  .card.sm .row { color: #FFFFFF; }
+  .card .code { font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
+  .card h3 { margin: 2px 0 8px; font-size: 15px; line-height: 1.25; }
+  .card .row { font-size: 13px; margin: 0 0 6px; }
+  .card .row b { font-weight: 700; color: var(--muted); }
+  .rule { background: var(--cobalt); color: #FFFFFF; border-radius: 6px; padding: 16px 20px; font-size: 15px; }
+  .rule b { color: #F3A4CC; }
+  .defs { display: grid; gap: 16px; }
+  .defs .intro { margin: 0; color: var(--muted); font-size: 14px; }
+  .def { background: var(--surface); border-radius: 6px; overflow: hidden; }
+  .def.anchor { outline: 2px solid var(--blue); outline-offset: -2px; }
+  .def-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; padding: 14px 18px 10px; }
+  .def-head .who { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .def-head h3 { margin: 0; font-size: 17px; flex: 1 1 320px; min-width: 0; }
+  .def-head .attr { font-size: 12px; font-weight: 700; color: var(--on-color); background: var(--blue); border-radius: 3px; padding: 3px 9px; }
+  .ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); }
+  .step { background: var(--bg); padding: 12px 14px 14px; min-width: 0; border-top: 4px solid var(--line); }
+  .step.tax { border-top-color: var(--blue); } .step.found { border-top-color: var(--green); }
+  .step.sm { border-top-color: var(--teal); } .step.in { border-top-color: var(--magenta); }
+  .step .lbl { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .step p { margin: 0 0 8px; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+  .step p:last-child { margin-bottom: 0; }
+  .step b { font-weight: 700; }
+  code { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11.5px; background: var(--surface); padding: 1px 4px; border-radius: 3px; }
+  .card.sm code { background: rgba(255,255,255,.12); }
+  @media (max-width: 980px) { .ladder { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .ladder { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .node rect, .edge { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="kicker">Asset manager reference model · SM-01 Distribution Performance</p>
+    <h1>Five answers, one certified number</h1>
+    <p class="lede">"Net flows, last quarter" used to come back five ways. For each of the five, this page shows the definition that now settles it, where that definition is captured in the taxonomy and the data products, how the semantic model references it, and which input rows it acts on. The rail under the diagram places every column in a Databricks Unity Catalog catalog, so the same picture reads as the deployment.</p>
+  </header>
+
+  <section class="tracer" aria-labelledby="tracer-h">
+    <h2 id="tracer-h">Trace one of the five answers</h2>
+    <p>Each team's number came from a definition choice. Pick a team to light where that choice is now made once, where it is applied, and which published line carries it. The definition cards below the diagram give the detail.</p>
+    <div class="chips" id="chips-teams" role="group" aria-label="The five team versions of net flows"></div>
+    <div class="trace-note" id="trace-note" aria-live="polite"></div>
+  </section>
+
+  <figure>
+    <div class="scroller">
+      <svg viewBox="0 0 1300 760" role="img" aria-label="Four source feeds load DP-006 attributed transactions and DP-007 attributed positions; both feed DP-008, which applies the Flow Treatment Rule from the taxonomy and publishes the certified rows; consumer-aligned products read DP-008; SM-01 takes tables from DP-006, DP-007, DP-008, DP-015 and DP-055." id="chain">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+        </defs>
+
+        <text class="band" x="20" y="104">SOURCE FEEDS</text>
+        <text class="band" x="270" y="104">FOUNDATIONAL</text>
+        <text class="band" x="780" y="104">CONSUMER-ALIGNED PRODUCTS</text>
+        <text class="band" x="1090" y="104">SEMANTIC MODEL</text>
+
+        <!-- taxonomy -->
+        <g class="node tax filled" id="n-tax">
+          <rect x="270" y="12" width="740" height="74" rx="3"/>
+          <text x="286" y="36" font-size="12" font-weight="700" letter-spacing="1.2">TAXONOMY · DOMAIN 06 SALES TRANSACTIONS AND AUM ATTRIBUTION</text>
+          <text class="sub" x="286" y="56">Measure Definition MSR-NETFLOW and the Flow Treatment Rule: reinvestment, exchange, transfer,</text>
+          <text class="sub" x="286" y="70">conversion, money market, time basis. Owner: Head of Distribution Analytics.</text>
+        </g>
+        <path class="edge tax" data-from="n-tax" data-to="n-006" d="M375,86 V128"/>
+        <text class="elabel" x="382" y="100">classifies each row</text>
+        <path class="edge tax" data-from="n-tax" data-to="n-008" d="M505,86 V298"/>
+        <text class="elabel" x="509" y="290">defines the measure</text>
+
+        <!-- sources -->
+        <g class="node src" id="n-s1"><rect x="20" y="130" width="190" height="52" rx="3"/><circle class="dot" cx="202" cy="138" r="5" fill="#B87333"/><text x="32" y="152" font-size="12" font-weight="700">Transfer agent</text><text class="sub" x="32" y="169">Trades, positions, fund orders</text></g>
+        <g class="node src" id="n-s2"><rect x="20" y="200" width="190" height="52" rx="3"/><circle class="dot" cx="202" cy="208" r="5" fill="#B87333"/><text x="32" y="222" font-size="12" font-weight="700">NSCC Omni/SERV</text><text class="sub" x="32" y="239">Networking, omnibus activity</text></g>
+        <g class="node src" id="n-s3"><rect x="20" y="270" width="190" height="52" rx="3"/><circle class="dot" cx="202" cy="278" r="5" fill="#B87333"/><text x="32" y="292" font-size="12" font-weight="700">Platforms and aggregators</text><text class="sub" x="32" y="309">Sub-accounting, platform feeds</text></g>
+        <g class="node src" id="n-s4"><rect x="20" y="340" width="190" height="52" rx="3"/><circle class="dot" cx="202" cy="348" r="5" fill="#B87333"/><text x="32" y="362" font-size="12" font-weight="700">Sponsors and recordkeepers</text><text class="sub" x="32" y="379">SMA, plan and custodian data</text></g>
+        <path class="edge" data-from="n-s1" data-to="n-006" d="M210,156 H236 V178 H268" />
+        <path class="edge" data-from="n-s2" data-to="n-006" d="M210,226 H236 V178 H268" />
+        <path class="edge" data-from="n-s3" data-to="n-006" d="M210,296 H236 V178 H268" />
+        <path class="edge" data-from="n-s4" data-to="n-006" d="M210,366 H236 V178 H268" />
+        <path class="edge" data-from="n-s1" data-to="n-007" d="M236,156 V118 H630 V128" />
+        <text class="elabel" x="240" y="173">trades</text>
+        <text class="elabel" x="556" y="113">positions</text>
+
+        <!-- foundational -->
+        <g class="node found filled" id="n-006">
+          <rect x="270" y="130" width="210" height="108" rx="3"/><circle class="dot" cx="472" cy="138" r="5" fill="#8A94A6"/>
+          <text x="284" y="152" font-size="11" font-weight="700" letter-spacing="1">DP-006</text>
+          <text x="284" y="172" font-size="13" font-weight="700">Attributed Transactions</text>
+          <text class="sub" x="284" y="192">One row per trade leg, de-duplicated</text>
+          <text class="sub" x="284" y="206">across feeds. Type, direction, dates,</text>
+          <text class="sub" x="284" y="220">look-through level, attribution.</text>
+        </g>
+        <g class="node found filled" id="n-007">
+          <rect x="530" y="130" width="200" height="108" rx="3"/><circle class="dot" cx="722" cy="138" r="5" fill="#8A94A6"/>
+          <text x="544" y="152" font-size="11" font-weight="700" letter-spacing="1">DP-007</text>
+          <text x="544" y="172" font-size="13" font-weight="700">Attributed Positions &amp; AUM</text>
+          <text class="sub" x="544" y="192">Daily positions by account, omnibus</text>
+          <text class="sub" x="544" y="206">sub-account, plan and program.</text>
+          <text class="sub" x="544" y="220">Look-through coverage.</text>
+        </g>
+        <g class="node found filled" id="n-008">
+          <rect x="330" y="300" width="340" height="110" rx="3"/><circle class="dot" cx="662" cy="308" r="5" fill="#C9A227"/>
+          <text x="344" y="322" font-size="11" font-weight="700" letter-spacing="1">DP-008</text>
+          <text x="344" y="342" font-size="13" font-weight="700">Certified Flows &amp; AUM</text>
+          <text class="sub" x="344" y="362">Applies the definitions and the rule once.</text>
+          <text class="sub" x="344" y="376">Measure Value by period, channel, territory,</text>
+          <text class="sub" x="344" y="390">firm, share class, snapshot. Locked, restated.</text>
+          <text class="obj" x="344" y="404">am.gold.dp_008_measure_value and its 3 companions</text>
+        </g>
+        <path class="edge strong" data-from="n-006" data-to="n-008" d="M375,238 V298"/>
+        <text class="elabel" x="382" y="258">attributed flows,</text>
+        <text class="elabel" x="382" y="272">pre-treatment</text>
+        <path class="edge strong" data-from="n-007" data-to="n-008" d="M630,238 V298"/>
+        <text class="elabel" x="536" y="258">month-end AUM,</text>
+        <text class="elabel" x="536" y="272">look-through coverage</text>
+
+        <!-- masters -->
+        <g class="node mst" id="n-mst">
+          <rect x="270" y="470" width="380" height="76" rx="3"/><circle class="dot" cx="642" cy="478" r="5" fill="#8A94A6"/>
+          <text x="284" y="490" font-size="11" font-weight="700" letter-spacing="1">SHARED MASTERS</text>
+          <text class="sub" x="284" y="508">DP-001 distributor hierarchy · DP-004 product and share class</text>
+          <text class="sub" x="284" y="522">DP-009 territories and coverage · DP-013 calendars, code lists</text>
+          <text class="sub" x="284" y="536">DP-002 financial professionals · DP-005 agreements and shelf</text>
+        </g>
+        <path class="edge" data-from="n-mst" data-to="n-008" d="M500,470 V412"/>
+        <text class="elabel" x="506" y="446">dimension keys</text>
+
+        <!-- consumer-aligned -->
+        <g class="node cons" id="n-015"><rect x="780" y="112" width="260" height="60" rx="3"/><circle class="dot" cx="1032" cy="120" r="5" fill="#C9A227"/><text x="794" y="132" font-size="11" font-weight="700" letter-spacing="1">DP-015</text><text x="794" y="149" font-size="12.5" font-weight="700">Distribution Executive Dashboard</text><text class="sub" x="794" y="164">Plan, industry flows, market share</text></g>
+        <g class="node cons" id="n-055"><rect x="780" y="190" width="260" height="60" rx="3"/><circle class="dot" cx="1032" cy="198" r="5" fill="#C9A227"/><text x="794" y="210" font-size="11" font-weight="700" letter-spacing="1">DP-055</text><text x="794" y="227" font-size="12.5" font-weight="700">Sales Flow Forecast</text><text class="sub" x="794" y="242">Run rate, pipeline, base and range</text></g>
+        <g class="node cons" id="n-029"><rect x="780" y="268" width="260" height="60" rx="3"/><circle class="dot" cx="1032" cy="276" r="5" fill="#C9A227"/><text x="794" y="288" font-size="11" font-weight="700" letter-spacing="1">DP-029</text><text x="794" y="305" font-size="12.5" font-weight="700">Product Sales Performance &amp; Footprint</text><text class="sub" x="794" y="320">Published in SM-06 Product &amp; Market</text></g>
+        <g class="node cons" id="n-024"><rect x="780" y="346" width="260" height="60" rx="3"/><circle class="dot" cx="1032" cy="354" r="5" fill="#C9A227"/><text x="794" y="366" font-size="11" font-weight="700" letter-spacing="1">DP-024</text><text x="794" y="383" font-size="12.5" font-weight="700">DCIO Plan &amp; Recordkeeper Insight</text><text class="sub" x="794" y="398">Published in SM-04 Institutional &amp; Retirement</text></g>
+        <g class="node cons" id="n-045"><rect x="780" y="424" width="260" height="60" rx="3"/><circle class="dot" cx="1032" cy="432" r="5" fill="#C9A227"/><text x="794" y="444" font-size="11" font-weight="700" letter-spacing="1">DP-045</text><text x="794" y="461" font-size="12.5" font-weight="700">Data Quality &amp; Attribution Health</text><text class="sub" x="794" y="476">Feeds, breaks, matches, restatements</text></g>
+        <path class="edge" data-from="n-008" data-to="n-015" d="M670,355 H740 V142 H778"/>
+        <path class="edge" data-from="n-008" data-to="n-055" d="M670,355 H740 V220 H778"/>
+        <path class="edge" data-from="n-008" data-to="n-029" d="M670,355 H740 V298 H778"/>
+        <path class="edge" data-from="n-008" data-to="n-024" d="M670,355 H740 V376 H778"/>
+        <path class="edge" data-from="n-008" data-to="n-045" d="M670,355 H740 V454 H778"/>
+        <text class="elabel" x="748" y="341" font-size="10">reads the certified rows, never recomputes</text>
+
+        <!-- semantic model -->
+        <g class="node sm filled" id="n-sm">
+          <rect x="1090" y="112" width="190" height="372" rx="3"/><circle class="dot" cx="1272" cy="120" r="5" fill="#C9A227"/>
+          <text x="1104" y="134" font-size="11" font-weight="700" letter-spacing="1">SM-01</text>
+          <text x="1104" y="154" font-size="13" font-weight="700">Distribution Performance</text>
+          <text class="sub" x="1104" y="178">13 tables from 5 products.</text>
+          <text class="sub" x="1104" y="196">Relationships declared.</text>
+          <text class="sub" x="1104" y="214">Metrics are sums over</text>
+          <text class="sub" x="1104" y="228">product columns, with</text>
+          <text class="sub" x="1104" y="242">source and description.</text>
+          <text class="sub" x="1104" y="266">Always-filters: one</text>
+          <text class="sub" x="1104" y="280">dimension grain, monthly</text>
+          <text class="sub" x="1104" y="294">periods, the current</text>
+          <text class="sub" x="1104" y="308">locked snapshot.</text>
+          <text class="sub" x="1104" y="332">Access by role: leadership,</text>
+          <text class="sub" x="1104" y="346">analytics, sales, broad.</text>
+          <text class="sub" x="1104" y="370">Carries the one certified</text>
+          <text class="sub" x="1104" y="384">figure. Defines nothing.</text>
+          <text class="obj" x="1104" y="412">am.gold.sm01_flows_aum</text>
+          <text class="obj" x="1104" y="426">am.gold.sm01_* (13 views)</text>
+          <text class="obj" x="1104" y="440">am.gold.mv_sm01_flows_aum</text>
+          <text class="sub" x="1104" y="458">views and metric views,</text>
+          <text class="sub" x="1104" y="472">read with MEASURE()</text>
+        </g>
+        <path class="edge" data-from="n-015" data-to="n-sm" d="M1040,142 H1088"/>
+        <path class="edge" data-from="n-055" data-to="n-sm" d="M1040,220 H1088"/>
+        <path class="edge strong" data-from="n-008" data-to="n-sm" d="M660,410 V560 H1185 V486"/>
+        <text class="elabel" x="690" y="553">tables from DP-006, DP-007 and DP-008 read directly</text>
+
+        <!-- Databricks placement rail, aligned under each column -->
+        <g class="rail" id="rail">
+          <rect class="bg" x="20" y="586" width="1260" height="162" rx="3"/>
+          <text class="title" x="36" y="608">ON DATABRICKS · UNITY CATALOG am · THE DOT ON EACH BOX ABOVE IS ITS SCHEMA</text>
+
+          <!-- sources -> bronze -->
+          <circle cx="42" cy="630" r="5" fill="#B87333"/>
+          <text class="name" x="54" y="634">am.bronze</text>
+          <text class="obj" x="36" y="652">ta_transactions, ta_positions</text>
+          <text class="obj" x="36" y="666">omniserv_activity, _positions</text>
+          <text class="obj" x="36" y="680">platform_subaccounting, sponsor_*</text>
+          <text class="note" x="36" y="698">Files on /Volumes/am/bronze/sources,</text>
+          <text class="note" x="36" y="712">one Delta table per file, strings only.</text>
+          <text class="note" x="36" y="730">Job task 01 land bronze</text>
+
+          <!-- foundational + masters -> silver -->
+          <circle cx="282" cy="630" r="5" fill="#8A94A6"/>
+          <text class="name" x="294" y="634">am.silver</text>
+          <text class="obj" x="276" y="652">dp_006_transaction, _linked_transaction</text>
+          <text class="obj" x="276" y="666">dp_006_attribution_record</text>
+          <text class="obj" x="276" y="680">dp_007_position, _attribution_record</text>
+          <text class="obj" x="276" y="694">dp_001, dp_004, dp_009, dp_013 masters</text>
+          <text class="obj" x="276" y="708">dp_100_taxonomy_element (domain 06)</text>
+          <text class="note" x="276" y="726">Conformed once by job task 02. The taxonomy</text>
+          <text class="note" x="276" y="740">band is also comments and tags on columns.</text>
+
+          <!-- DP-008 -> gold -->
+          <circle cx="552" cy="630" r="5" fill="#C9A227"/>
+          <text class="name" x="564" y="634">am.gold · certified</text>
+          <text class="obj" x="546" y="652">dp_008_measure_value</text>
+          <text class="obj" x="546" y="666">dp_008_measure_definition (versions)</text>
+          <text class="obj" x="546" y="680">dp_008_snapshot, dp_008_restatement</text>
+          <text class="note" x="546" y="698">The only table where Net Flows is</text>
+          <text class="note" x="546" y="712">computed. Final snapshot locks on</text>
+          <text class="note" x="546" y="726">business day 8; restated after.</text>
+
+          <!-- consumer -> gold -->
+          <circle cx="786" cy="630" r="5" fill="#C9A227"/>
+          <text class="name" x="798" y="634">am.gold · consumer</text>
+          <text class="obj" x="780" y="652">dp_015_plan_forecast, dp_015_industry_flows,</text>
+          <text class="obj" x="780" y="666">dp_015_market_share, dp_055_flow_forecast</text>
+          <text class="obj" x="780" y="680">dp_029_*, dp_024_*, dp_045_* (other models)</text>
+          <text class="note" x="780" y="698">Built from gold and silver, never bronze.</text>
+          <text class="note" x="780" y="712">DP-015 pack leaves as a file job; Finance</text>
+          <text class="note" x="780" y="726">reads DP-008 rows by API.</text>
+
+          <!-- semantic -> gold views, consumption -->
+          <circle cx="1096" cy="630" r="5" fill="#C9A227"/>
+          <text class="name" x="1108" y="634">am.gold · semantic</text>
+          <text class="obj" x="1090" y="652">sm01_* views, sm00_* dims</text>
+          <text class="obj" x="1090" y="666">mv_sm01_flows_aum (metrics)</text>
+          <text class="note" x="1090" y="684">Grants per role on views only;</text>
+          <text class="note" x="1090" y="698">column masks for hidden fields.</text>
+          <text class="note" x="1090" y="716">Genie space and AI/BI dashboards</text>
+          <text class="note" x="1090" y="730">on top, calling MEASURE().</text>
+        </g>
+      </svg>
+    </div>
+    <figcaption>The five answers all resolve inside this chain. The certified figure is computed in exactly one place, DP-008. Everything to its right reads its rows; SM-01 names tables from DP-006, DP-007, DP-008, DP-015 and DP-055 and sums the columns it is given. DP-029, DP-024 and DP-045 read the same certified rows and publish through other models or straight to the Data Office. The dashed blue edges are the taxonomy's hold on the chain: the rule classifies each transaction in DP-006 and versions the measure in DP-008. The rail at the bottom places each column in one Unity Catalog catalog, <code>am</code>: feeds land in bronze, the foundational products and the taxonomy register are conformed in silver, and the certified product, the consumer products and the SM-01 views and metric views live in gold. The shape is the one the activation build exports for the wealth model; for this chain it is proposed, not yet run on a workspace.</figcaption>
+    <div class="legend">
+      <span><i class="sw src"></i>Source feed</span>
+      <span><i class="sw tax"></i>Taxonomy</span>
+      <span><i class="sw found"></i>Foundational product</span>
+      <span><i class="sw cons"></i>Consumer-aligned product</span>
+      <span><i class="sw sm"></i>Semantic model</span>
+      <span><i class="sw q"></i>Path of the selected answer</span>
+      <span><i class="sw bronze"></i>am.bronze</span>
+      <span><i class="sw silver"></i>am.silver</span>
+      <span><i class="sw gold"></i>am.gold</span>
+    </div>
+  </figure>
+
+  <section class="rule">
+    <b>The one rule.</b> A data product assembles what the Data Domains master; it never remasters them. A certified number is defined in one product only, and every other product, scorecard, payout and assistant reads it from there. That is why the diagram has one box where the rule is applied and many boxes that only read.
+  </section>
+
+  <section class="defs" aria-labelledby="defs-h">
+    <h2 id="defs-h">The definitions, and where each one lives</h2>
+    <p class="intro">Every card reads the same way across: the taxonomy attribute that holds the rule, the data product table and column that capture it, the semantic model element that references it, and the input rows it acts on. Identifiers are the model's own.</p>
+
+    <article class="def anchor">
+      <header class="def-head"><span class="who">The certified measure</span><h3>Net Flows (Net Sales), MSR-NETFLOW</h3><span class="attr">Measure Definition · certified</span></header>
+      <div class="ladder">
+        <div class="step tax"><div class="lbl">Taxonomy</div>
+          <p><code>TX-MEA-004</code> <b>Business Definition</b> "Gross sales less redemptions, including net exchanges, excluding reinvestments." <code>TX-MEA-034</code> adds the alignment: equals ICI net new cash flow where exchanges are included and reinvestments excluded, and EFAMA net sales.</p>
+          <p><code>TX-MEA-005</code> <b>Calculation Formula</b> Gross Sales + Exchanges In − Redemptions − Exchanges Out. <code>TX-MEA-008</code> Sign Convention: outflows negative.</p>
+          <p><code>TX-MEA-006 / 007</code> <b>Included</b> Purchase, Exchange In, Transfer In (new owner), SMA Contribution, ETF Creation. <b>Excluded</b> Reinvestment, Share Class Conversion.</p>
+          <p><code>TX-MEA-010</code> <b>Time Basis</b> Trade Date. <code>TX-MEA-011</code> <b>Industry alignment</b> Aligned with Adjustments. <code>TX-MEA-012</code> <b>Certified</b> Y. Owner: Head of Distribution Analytics.</p></div>
+        <div class="step found"><div class="lbl">Data product</div>
+          <p><b>DP-008</b> <code>dp_008.measure_definition</code>: one row per definition version, 16 columns, carrying the business definition, formula, included and excluded types, time basis and the seven Flow Treatment Rule options.</p>
+          <p><code>dp_008.measure_value</code>: the computed figure, keyed measure set × reporting period × dimension combination (channel, distributor node, territory, share class) × data basis × snapshot. Column <code>net_flows</code>.</p></div>
+        <div class="step sm"><div class="lbl">Semantic model</div>
+          <p><b>SM-01</b> metric <b>Net Flows</b>, aggregation additive, <code>expr: sum(flows_aum.net_flows)</code>, <code>source: DP-008 / Net Flows</code>. Nothing else.</p>
+          <p>Always-filters on <code>flows_aum</code>: one dimension grain (share class; channel; territory; distributor firm), <code>period_type = 'MONTH'</code>, and the current locked snapshot that no later locked snapshot supersedes. Default dashboard range: trailing 12 locked months.</p></div>
+        <div class="step in"><div class="lbl">Input</div>
+          <p><b>DP-006</b> attribution records, signed by Flow Direction, with a Transaction Type in the included list, assigned to the period by <code>trade_date</code>; attributed plus unattributed equals the source total.</p>
+          <p>Worked quarter: Gross Sales 240 − Redemptions 65 + Net Exchanges 0 → <b>175</b>.</p></div>
+      </div>
+    </article>
+
+    <article class="def">
+      <header class="def-head"><span class="who">Sales · $2.41bn</span><h3>Counted exchanges in as gross and conversions as rep credit</h3><span class="attr">Exchange Treatment · Share Class Conversion Treatment</span></header>
+      <div class="ladder">
+        <div class="step tax"><div class="lbl">Taxonomy</div>
+          <p><code>TX-MEA-014</code> <b>Exchange Treatment</b>, object Flow Treatment Rule. "Whether intra-family exchanges are counted in gross sales and redemptions or only as net exchanges." Code list Treatment Option: Include in Gross, Net Only. Certified value <b>Include in Gross</b>: the buy leg is a gross sale, the sell leg a redemption, so they net in Net Flows.</p>
+          <p><code>TX-MEA-016</code> <b>Share Class Conversion Treatment</b> "Whether conversions between share classes of the same fund are counted as flows." Certified value <b>Exclude at Product Level</b>: counted at share-class level only, zero for the fund.</p>
+          <p><code>TX-TRN-045 to 050</code> Linked Transaction: the contra leg, contra share class, conversion reason and the Same-Owner Indicator.</p></div>
+        <div class="step found"><div class="lbl">Data product</div>
+          <p><b>DP-006</b> writes the two legs of every exchange and conversion as a <code>linked_transaction</code> pair and publishes the <b>Same-Owner Movement Flag</b> ("Y when a Linked Transaction has Same-Owner Indicator = Y: an exchange, transfer or conversion that is not new money").</p>
+          <p><b>DP-008</b> <code>measure_definition.exchange_treatment</code> and <code>.share_class_conversion_treatment</code>; the result lands in <code>measure_value.net_exchanges</code>.</p></div>
+        <div class="step sm"><div class="lbl">Semantic model</div>
+          <p>Metric <b>Net Exchanges</b> <code>sum(flows_aum.net_exchanges)</code>: "net money moved into our share classes from our other share classes; the bridge between Gross Sales less Redemptions and Net Flows."</p>
+          <p>Gross Sales and Redemptions remain available to Sales as the gross view; Net Flows is the certified net. Rep credit is a Salesperson Credit row in DP-006, read in SM-02, never a flow.</p></div>
+        <div class="step in"><div class="lbl">Input</div>
+          <p>Transfer agent switch orders (ISO 20022 setr.013) arrive as Exchange Out and Exchange In legs; conversions as Share Class Conversion with a Conversion Reason.</p>
+          <p>Worked quarter: T2 exchange 40 out of Fund A into Fund B → Gross Sales +40, Redemptions 40, Net Exchanges 0. T3 conversion of 15 from Class C to Class I → zero at product level.</p></div>
+      </div>
+    </article>
+
+    <article class="def">
+      <header class="def-head"><span class="who">Finance · $1.86bn</span><h3>Settlement date, money market funds out, reinvestments out</h3><span class="attr">Time Basis · Money Market Inclusion</span></header>
+      <div class="ladder">
+        <div class="step tax"><div class="lbl">Taxonomy</div>
+          <p><code>TX-MEA-010</code> <b>Time Basis</b> "Date driving period assignment." Code list: Trade Date, Settlement Date, As-Of Date, Processing Date, Valuation Date. One value per measure definition; certified value <b>Trade Date</b>.</p>
+          <p><code>TX-MEA-019</code> <b>Money Market Inclusion</b> "Whether money market funds are included in long-term flow measures." Certified value <b>Exclude (Report Separately)</b>. <code>TX-MEA-013</code> Reinvestment Treatment already excludes reinvestments. So two of Finance's three choices agree with the rule.</p>
+          <p><code>TX-TRN-015</code> <b>Trade Date</b> and <code>TX-TRN-016</code> <b>Settlement Date</b> are both attributes of Transaction; the model keeps both and uses one.</p></div>
+        <div class="step found"><div class="lbl">Data product</div>
+          <p><b>DP-008</b> <code>measure_definition.time_basis</code> and <code>.money_market_inclusion</code>.</p>
+          <p><b>DP-006</b> <code>transaction.trade_date</code> and <code>transaction.settlement_date</code> on every row. <b>DP-008</b> assigns the period from trade date and publishes money market share classes as their own rows, so Finance's exclusion is a filter on share class, not a second number.</p></div>
+        <div class="step sm"><div class="lbl">Semantic model</div>
+          <p><code>flows_aum.period_end_date</code> joins DP-013 Calendar Date; no relationship assigns a period by settlement date. <code>flows_aum.share_class</code> joins DP-004 Share Class, where the vehicle and asset class live, so the money market slice can be shown or excluded without redefining the metric.</p>
+          <p>A settlement-date Net Flows would be a second Measure Definition version with its own measure name, published beside the certified one.</p></div>
+        <div class="step in"><div class="lbl">Input</div>
+          <p>Transfer agent and NSCC trades carry both dates; the period follows the trade date.</p>
+          <p>Worked quarter: T4 (trade Sep 29, settles Oct 1) stays in Q3; T5, 60 into the money market fund, is published on its own share-class rows and excluded from the long-term figure.</p></div>
+      </div>
+    </article>
+
+    <article class="def">
+      <header class="def-head"><span class="who">Product · $2.08bn</span><h3>Rolled fund net assets forward, so reinvested distributions counted as sales</h3><span class="attr">Reinvestment Treatment</span></header>
+      <div class="ladder">
+        <div class="step tax"><div class="lbl">Taxonomy</div>
+          <p><code>TX-MEA-013</code> <b>Reinvestment Treatment</b> "Whether reinvested dividends and capital gains count as sales or as market movement." Code list Treatment Option; certified value <b>Exclude from Sales (Market Movement)</b>. References ICI and Morningstar.</p>
+          <p><code>TX-MEA-035</code> <b>Reinvested Distributions</b> is its own measure, and <code>TX-MEA-038</code> <b>Market Movement</b> is defined as Ending AUM − Beginning AUM − Net Flows, which includes reinvestments when they are excluded from flows.</p>
+          <p>Transaction Type <b>Reinvestment</b> ("dividend or capital gain reinvested") is a value of the code list, aligned to ICI flow components.</p></div>
+        <div class="step found"><div class="lbl">Data product</div>
+          <p><b>DP-006</b> keeps every Reinvestment row (it is a transaction) with <code>transaction_type = 'Reinvestment'</code>; DP-008's Gross Sales definition reads "reinvested distributions excluded".</p>
+          <p><b>DP-008</b> <code>measure_definition.reinvestment_treatment</code>; the amount lands in <code>measure_value.market_movement</code>, with Reinvested Distributions reported separately.</p></div>
+        <div class="step sm"><div class="lbl">Semantic model</div>
+          <p>Metric <b>Market Movement</b> <code>sum(flows_aum.market_movement)</code>: "the change in AUM not explained by net flows or FX". Verified question 2 states the identity: Beginning AUM + Net Flows + Market Movement + FX Effect = Ending AUM.</p>
+          <p>Product's roll-forward still works; it is the sum of four published lines rather than a recomputation.</p></div>
+        <div class="step in"><div class="lbl">Input</div>
+          <p>Transfer agent reinvestment postings on the distribution date, one per account and share class.</p>
+          <p>Worked quarter: T6, 30 of distributions reinvested across the funds → Market Movement, not Gross Sales; Net Flows unchanged.</p></div>
+      </div>
+    </article>
+
+    <article class="def">
+      <header class="def-head"><span class="who">Platforms · $2.67bn</span><h3>Counted platform omnibus totals and the sub-accounts under them</h3><span class="attr">Look-Through Level · Attribution Method · Attribution Share %</span></header>
+      <div class="ladder">
+        <div class="step tax"><div class="lbl">Taxonomy</div>
+          <p><code>TX-TRN-013</code> <b>Look-Through Level</b> "Level of visibility the record provides into the underlying investor." Code list: Direct Account, Networked Account, Omnibus Aggregate, Omnibus Sub-Account, Plan Level, Sponsor Program Level, Aggregator Estimate. One value per record. Critical data element; cites DTCC Networking and Omni/SERV.</p>
+          <p><code>TX-POS-010 to 014</code> Omnibus Look-Through: Omnibus Parent Account, Look-Through Source, Look-Through Coverage %, Omnibus Residual Amount. The parent is the control total; the sub-accounts explain it.</p>
+          <p>Attribution Method (Direct, Rep-Matched, Look-Through, Aggregator, Allocated, Estimated, Manual Override) and <code>TX-ATT-006</code> Attribution Share % ("100% unless split") make every attribution record sum back to its source.</p></div>
+        <div class="step found"><div class="lbl">Data product</div>
+          <p><b>DP-006</b> <code>transaction.look_through_level</code> on every row; its Unattributed Amount metric states the invariant: "attributed + unattributed equals the source total."</p>
+          <p><b>DP-007</b> publishes <b>Look-Through Coverage %</b> ("assets resolved below the omnibus parent / total omnibus parent market value") and the residual. <b>DP-008</b>'s distributor firm dimension "includes the unattributed member, so firm rows add up to the firm total."</p></div>
+        <div class="step sm"><div class="lbl">Semantic model</div>
+          <p><code>attributed_transactions</code> joins <code>transactions</code> on the source transaction; metrics <b>Transaction Attribution Rate %</b> and <b>Unattributed Transaction Amount</b> show how much resolved to an advisor and why the rest did not.</p>
+          <p><code>flows_aum.distributor_firm</code> rows add to the firm total by construction, so a platform's omnibus and its sub-accounts can never both count.</p></div>
+        <div class="step in"><div class="lbl">Input</div>
+          <p>The transfer agent's omnibus posting and the Omni/SERV activity and position files for the same account; DP-006 de-duplicates across feeds.</p>
+          <p>Worked quarter: T7, a broker-dealer omnibus purchase of 120 with 300 sub-accounts in the Omni/SERV file → Gross Sales +120 once, attributed by look-through, residual in suspense.</p></div>
+      </div>
+    </article>
+
+    <article class="def">
+      <header class="def-head"><span class="who">Executive pack · $2.20bn</span><h3>Hand-adjusted from last quarter's method, with two restatements</h3><span class="attr">Snapshot Type · Snapshot Status · Restatement</span></header>
+      <div class="ladder">
+        <div class="step tax"><div class="lbl">Taxonomy</div>
+          <p>Family TX-SNP Reporting Periods, Snapshots &amp; Restatements. <code>TX-SNP-006</code> <b>Snapshot Type</b> (Flash, Preliminary, Final, Restated), <code>TX-SNP-008</code> <b>Snapshot Status</b> (Open, Locked, Superseded), <code>TX-SNP-009</code> Supersedes Snapshot, <code>TX-SNP-010</code> Approved By.</p>
+          <p><code>TX-SNP-012</code> <b>Restatement Reason</b>: Late Source Data, Source Correction, Attribution Rule Change, Hierarchy Change, Measure Definition Change, Error. <code>TX-SNP-013</code> Affected Periods, <code>TX-SNP-014</code> Net Impact Amount, <code>TX-SNP-015</code> Compensation Impact Indicator, handed to domain 07 for payouts.</p>
+          <p><code>TX-MEA-029</code> every Measure Value row names its Snapshot.</p></div>
+        <div class="step found"><div class="lbl">Data product</div>
+          <p><b>DP-008</b> <code>dp_008.snapshot</code> (reporting period × snapshot type × version) and <code>dp_008.restatement</code> (one row per event). Preliminary by business day 3, locked by business day 8; every locked monthly snapshot since 2015 kept, plus every superseded version.</p>
+          <p><code>measure_value.restatement_impact</code> carries the net change to a locked period. <b>DP-006</b>'s <b>Late Correction Flag</b> marks the trade that caused it.</p></div>
+        <div class="step sm"><div class="lbl">Semantic model</div>
+          <p>Always-filter: the current locked snapshot, excluding any snapshot a later locked one supersedes. Metric <b>Restatement Impact</b> <code>sum(flows_aum.restatement_impact)</code>: "how much the current locked figures differ from the figures first locked for the same months."</p>
+          <p>Honest gap: SM-01 lists "which restatement explains the change in a given month" under what it cannot answer yet, because Affected Periods is free text (GAP-06-005).</p></div>
+        <div class="step in"><div class="lbl">Input</div>
+          <p>A cancel-and-correct after the Final Close Date, a hierarchy or crediting-rule change, or a measure definition change. There is no manual input: an adjustment that is not a restatement row does not exist in the model.</p>
+          <p>Worked quarter: T8, a 12 redemption with trade date Jun 27 arriving in July → Q2 Restated snapshot, Restatement Impact −12, reason Late Source Data; Q3 stays 175.</p></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="wq" aria-labelledby="wq-h">
+    <h2 id="wq-h">A worked quarter</h2>
+    <p>Illustrative amounts in $m. Ten things happen in Q3. DP-006 classifies and attributes each as it lands; DP-008 publishes one Final snapshot with every line at once; each team's old number is then a sum of published lines, or a timing choice the model no longer makes.</p>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>#</th><th>What happened</th><th>Transaction Type on the DP-006 row</th><th>Attribute that decided it</th><th>In certified Net Flows?</th></tr></thead>
+        <tbody>
+          <tr><td>T1</td><td>Jul 8: a wirehouse client buys 50 of Fund A</td><td>Purchase, inflow</td><td>Included Transaction Types</td><td><span class="tag in">Yes</span> Gross Sales +50</td></tr>
+          <tr><td>T2</td><td>Jul 20: a client exchanges 40 from Fund A into Fund B</td><td>Exchange Out and Exchange In, linked</td><td>Exchange Treatment = Include in Gross</td><td><span class="tag out">Nets to 0</span> Gross Sales +40, Redemptions 40, Net Exchanges 0</td></tr>
+          <tr><td>T3</td><td>Aug 5: 15 of Class C converts to Class I in the same fund</td><td>Share Class Conversion, linked</td><td>Share Class Conversion Treatment</td><td><span class="tag out">Class level only</span> zero for the fund</td></tr>
+          <tr><td>T4</td><td>Sep 29 trade date, settles Oct 1: a platform buys 30 of Fund A</td><td>Purchase, inflow</td><td>Time Basis = Trade Date</td><td><span class="tag in">Yes</span> Gross Sales +30, in Q3</td></tr>
+          <tr><td>T5</td><td>Sep 12: 60 into the firm's money market fund</td><td>Purchase, money market share class</td><td>Money Market Inclusion</td><td><span class="tag out">Reported separately</span> +60 on its own rows</td></tr>
+          <tr><td>T6</td><td>Aug 15: 30 of distributions reinvested across the funds</td><td>Reinvestment</td><td>Reinvestment Treatment</td><td><span class="tag out">Market Movement</span> +30</td></tr>
+          <tr><td>T7</td><td>Sep 18: a broker-dealer omnibus buys 120; the Omni/SERV file shows the same 120 across 300 sub-accounts</td><td>Purchase, Omnibus Aggregate with Omnibus Sub-Account look-through</td><td>Look-Through Level, Attribution Share %</td><td><span class="tag in">Yes, once</span> Gross Sales +120, attributed by look-through</td></tr>
+          <tr><td>T8</td><td>Jul 2: a 12 redemption with trade date Jun 27 arrives as a late correction</td><td>Redemption, Late Correction Flag</td><td>Time Basis, Restatement</td><td><span class="tag no">Not Q3</span> Q2 restated −12, reason Late Source Data</td></tr>
+          <tr><td>T9</td><td>Aug 22: a client redeems 25 of Fund B</td><td>Redemption, outflow</td><td>Included Transaction Types</td><td><span class="tag in">Yes</span> Redemptions 25</td></tr>
+          <tr><td>T10</td><td>Aug 28: 20 moves by ACATS between two accounts of the same owner at different broker-dealers</td><td>Transfer Out and Transfer In, Same-Owner = Y</td><td>Transfer Treatment = Exclude (Same Owner)</td><td><span class="tag out">Excluded</span> Same-Owner Movement Flag</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="two">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Published in the Q3 Final snapshot</th><th class="n">Total</th><th>Note</th></tr></thead>
+          <tbody>
+            <tr><td>Gross Sales</td><td class="n">240</td><td>T1 50 + T2 40 + T4 30 + T7 120</td></tr>
+            <tr><td>Redemptions</td><td class="n">65</td><td>T2 40 + T9 25</td></tr>
+            <tr><td>Net Exchanges</td><td class="n">0</td><td>T2 in and out</td></tr>
+            <tr><td><b>Net Flows</b>, certified</td><td class="n">175</td><td>240 − 65 + 0</td></tr>
+            <tr><td>Market Movement, reinvestment part</td><td class="n">+30</td><td>T6</td></tr>
+            <tr><td>Money market flows, own rows</td><td class="n">+60</td><td>T5, excluded from the long-term figure</td></tr>
+            <tr><td>Same-Owner Movements Excluded</td><td class="n">20</td><td>T10</td></tr>
+            <tr><td>Restatement Impact</td><td class="n">−12</td><td>On Q2. Reason: Late Source Data</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Team</th><th class="n">Old number</th><th>What they read now</th></tr></thead>
+          <tbody>
+            <tr><td>Sales</td><td class="n">230</td><td>175 plus the exchange-in leg (40) and the conversion (15). Both are still visible: Net Exchanges and the conversion at class level.</td></tr>
+            <tr><td>Finance</td><td class="n">145</td><td>T4 is in Q3 on trade date for everyone. Money market and reinvestments were already out. A settlement-date view is a second definition version, not a recompute.</td></tr>
+            <tr><td>Product</td><td class="n">205</td><td>175 plus reinvestments (30). The roll-forward ties through Market Movement.</td></tr>
+            <tr><td>Platforms</td><td class="n">295</td><td>175 plus the 300 sub-accounts counted again (120). One look-through level per record: counted once.</td></tr>
+            <tr><td>Executive pack</td><td class="n">163</td><td>Q3 stays 175; Q2 carries a Restated snapshot of −12 with the reason, and both snapshots stay on file.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+(function () {
+  var TEAMS = [
+    { team: "Sales", num: "$2.41bn", did: "Counted exchanges in as gross and credited share-class conversions to the rep, on trade date.",
+      rule: "Exchange Treatment = Include in Gross, so the buy leg and the sell leg both count and net to zero in Net Flows; Share Class Conversion Treatment = Exclude at Product Level.",
+      where: "DP-006 writes the two legs as a Linked Transaction and flags same-owner movements. DP-008 publishes Net Exchanges beside Gross Sales and Redemptions. SM-01 reads all three; rep credit is a Salesperson Credit row, read in SM-02, never a flow.",
+      path: ["n-tax","n-s1","n-006","n-008","n-sm"] },
+    { team: "Finance", num: "$1.86bn", did: "Settlement date, money market funds out, reinvestments out.",
+      rule: "Time Basis = Trade Date, one value per definition version. Money Market Inclusion = Exclude (Report Separately) and Reinvestment Treatment already agree with Finance.",
+      where: "DP-006 carries both dates; DP-008 assigns the period from trade date and publishes money market share classes on their own rows. SM-01 joins share class to DP-004, so the money market slice is a filter, not a second number. A settlement-date view would be a second Measure Definition version.",
+      path: ["n-tax","n-s1","n-s2","n-006","n-008","n-mst","n-sm"] },
+    { team: "Product", num: "$2.08bn", did: "Rolled fund net assets forward, so reinvested distributions counted as sales.",
+      rule: "Reinvestment Treatment = Exclude from Sales (Market Movement). Reinvested Distributions is its own measure.",
+      where: "DP-006 keeps every Reinvestment row; DP-008 routes the amount into Market Movement and publishes Reinvested Distributions separately. SM-01's Market Movement metric closes the identity Beginning AUM + Net Flows + Market Movement + FX = Ending AUM.",
+      path: ["n-tax","n-s1","n-006","n-007","n-008","n-sm"] },
+    { team: "Platforms", num: "$2.67bn", did: "Counted platform omnibus totals and the look-through sub-accounts under them.",
+      rule: "Look-Through Level: one value per record (Omnibus Aggregate or Omnibus Sub-Account, never both). Attribution Share % makes every attribution record sum back to its source.",
+      where: "DP-006 de-duplicates across the TA posting and the Omni/SERV files and holds the invariant attributed + unattributed = source total. DP-007 publishes Look-Through Coverage %. DP-008's distributor firm rows add to the firm total. SM-01 shows Transaction Attribution Rate % and the unattributed amount.",
+      path: ["n-tax","n-s1","n-s2","n-s3","n-006","n-007","n-008","n-045","n-sm"] },
+    { team: "Executive pack", num: "$2.20bn", did: "Hand-adjusted from last quarter's method, with two restatements.",
+      rule: "Snapshot Type and Status (Preliminary, Final, Restated; Open, Locked, Superseded) and Restatement are objects of the product, not edits: each restatement has a reason, affected periods, a net impact and a compensation-impact flag.",
+      where: "DP-008 keeps every locked monthly snapshot and every superseded version; DP-006 flags the late correction. SM-01 always reads the current locked snapshot and publishes Restatement Impact. DP-015 builds the executive dashboard from those rows.",
+      path: ["n-tax","n-s1","n-006","n-008","n-015","n-045","n-sm"] }
+  ];
+  var teamChips = document.getElementById("chips-teams");
+  var note = document.getElementById("trace-note");
+  var svg = document.getElementById("chain");
+  var nodes = svg.querySelectorAll(".node");
+  var edges = svg.querySelectorAll(".edge");
+  var labels = svg.querySelectorAll(".elabel");
+  var activeBtn = null;
+
+  function clear() {
+    nodes.forEach(function (n) { n.classList.remove("dim", "lit"); });
+    edges.forEach(function (e) { e.classList.remove("dim", "lit"); });
+    labels.forEach(function (l) { l.classList.remove("dim"); });
+    note.textContent = "";
+  }
+  function light(path, html) {
+    clear();
+    var set = {};
+    path.forEach(function (id) { set[id] = true; });
+    nodes.forEach(function (n) { n.classList.add(set[n.id] ? "lit" : "dim"); });
+    edges.forEach(function (e) {
+      var on = set[e.getAttribute("data-from")] && set[e.getAttribute("data-to")];
+      e.classList.add(on ? "lit" : "dim");
+    });
+    labels.forEach(function (l) { l.classList.add("dim"); });
+    note.innerHTML = html;
+  }
+  function esc(t) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+  function wire(btn, onSelect) {
+    btn.addEventListener("click", function () {
+      if (activeBtn === btn) { activeBtn.setAttribute("aria-pressed", "false"); activeBtn = null; clear(); return; }
+      if (activeBtn) activeBtn.setAttribute("aria-pressed", "false");
+      activeBtn = btn; btn.setAttribute("aria-pressed", "true"); onSelect();
+    });
+  }
+  TEAMS.forEach(function (t, i) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "chip"; b.id = "team" + (i + 1); b.setAttribute("aria-pressed", "false");
+    b.innerHTML = esc(t.team) + '<span class="num">' + esc(t.num) + "</span>";
+    wire(b, function () {
+      light(t.path, '<span class="step"><b>Their method:</b> ' + esc(t.did) + "</span> " +
+                    '<span class="step"><b>The rule:</b> ' + esc(t.rule) + "</span> " +
+                    '<span class="step"><b>Where it shows:</b> ' + esc(t.where) + "</span>");
+    });
+    teamChips.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>
