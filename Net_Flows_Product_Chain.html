@@ -102,7 +102,7 @@
   .rail .note { font-size: 10px; fill: var(--muted); }
   .dot { stroke: var(--bg); stroke-width: 1.5; }
   .node .obj { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: var(--on-color); opacity: .9; }
-  .sw.bronze { background: #B87333; } .sw.silver { background: #8A94A6; } .sw.gold { background: #C9A227; }
+  .sw.bronze { background: #B87333; } .sw.silver { background: #8A94A6; } .sw.gold { background: #C9A227; } .sw.semantic { background: #7C3AED; }
   /* bridge: how a team's number is built, left to right */
   .bridge { display: grid; gap: 10px; }
   .bridge h2 { margin: 0; }
@@ -183,7 +183,7 @@
   <header>
     <p class="kicker">Asset manager reference model · SM-01 Distribution Performance</p>
     <h1>Four needs, one certified base</h1>
-    <p class="lede">"Net flows, last quarter" comes back four ways, and every one of them is a legitimate need: gross for the field, settlement date for the ledger, reinvestments for the fund, approved post-close adjustments for the board. This page shows how each becomes a named measure defined once on one certified base, where that definition is captured in the taxonomy and the data products, how the semantic model publishes it, and which input rows it acts on. The rail under the diagram places every column in a Databricks Unity Catalog catalog, so the same picture reads as the deployment.</p>
+    <p class="lede">"Net flows, last quarter" comes back four ways, and every one of them is a legitimate need: gross for the field, settlement date for the ledger, reinvestments for the fund, approved post-close adjustments for the board. This page shows how each becomes a separately named metric in the semantic model, with one owner, defined in the taxonomy and computed once in the product on one certified base, where that definition is captured in the taxonomy and the data products, how the semantic model publishes it, and which input rows it acts on. The rail under the diagram places every column in a Databricks Unity Catalog catalog, so the same picture reads as the deployment.</p>
   </header>
 
   <section class="tracer" aria-labelledby="tracer-h">
@@ -198,6 +198,16 @@
     <p class="hint" id="bridge-hint">Pick a team above. The chain on the left produces one certified figure; the dashed step after it is the one certified line that turns it into the measure this audience needs, named by the lever that defines it.</p>
     <div class="bridge-row" id="bridge-row"></div>
     <p class="bkey" id="bridge-key"></p>
+  </section>
+
+  <section class="defs" aria-labelledby="axes-h">
+    <h2 id="axes-h">Two ways net flows varies, and where each is handled</h2>
+    <div class="two">
+      <div class="bstep in" style="max-width:none;flex:1 1 auto"><div class="k">By definition · a lever</div>
+        <p class="n">Same ingredients, different meaning. Settlement date instead of trade date, reinvestments in or out, gross instead of net. Each is one lever in the Measure Definition, set once in the taxonomy, computed once in DP-008, and published by SM-01 as a separately named metric with one owner. The four cards further down are this axis.</p></div>
+      <div class="bstep in" style="max-width:none;flex:1 1 auto"><div class="k">By grain · a cut</div>
+        <p class="n">Same measure, read at a different level. Fund or share class, advisor, wholesaler or territory. These are dimension cuts of the one certified figure in DP-008's measure value table, with domain 07's crediting rule applied for the wholesaler view in SM-02. Only the wholesaler cut needs the territory product; none of them is a new definition.</p></div>
+    </div>
   </section>
 
   <figure>
@@ -297,10 +307,10 @@
 
         <!-- semantic model -->
         <g class="node sm filled" id="n-sm">
-          <rect x="1090" y="112" width="190" height="372" rx="3"/><circle class="dot" cx="1272" cy="120" r="5" fill="#C9A227"/>
+          <rect x="1090" y="112" width="190" height="372" rx="3"/><circle class="dot" cx="1272" cy="120" r="5" fill="#7C3AED"/>
           <text x="1104" y="134" font-size="11" font-weight="700" letter-spacing="1">SM-01</text>
           <text x="1104" y="154" font-size="13" font-weight="700">Distribution Performance</text>
-          <text class="sub" x="1104" y="178">13 tables from 5 products.</text>
+          <text class="sub" x="1104" y="178">13 tables, 34 metrics.</text>
           <text class="sub" x="1104" y="196">Relationships declared.</text>
           <text class="sub" x="1104" y="214">Metrics are sums over</text>
           <text class="sub" x="1104" y="228">product columns, with</text>
@@ -313,11 +323,11 @@
           <text class="sub" x="1104" y="346">analytics, sales, broad.</text>
           <text class="sub" x="1104" y="370">Carries the one certified</text>
           <text class="sub" x="1104" y="384">figure. Defines nothing.</text>
-          <text class="obj" x="1104" y="412">am.gold.sm01_flows_aum</text>
-          <text class="obj" x="1104" y="426">am.gold.sm01_* (13 views)</text>
-          <text class="obj" x="1104" y="440">am.gold.mv_sm01_flows_aum</text>
-          <text class="sub" x="1104" y="458">views and metric views,</text>
-          <text class="sub" x="1104" y="472">read with MEASURE()</text>
+          <text class="obj" x="1104" y="412">am.semantic.sm01_* (13 views)</text>
+          <text class="obj" x="1104" y="426">am.semantic.mv_sm01_flows_aum</text>
+          <text class="sub" x="1104" y="444">Views only. No rows of its own:</text>
+          <text class="sub" x="1104" y="458">every figure is read from</text>
+          <text class="sub" x="1104" y="472">am.gold.dp_008_measure_value</text>
         </g>
         <path class="edge" data-from="n-015" data-to="n-sm" d="M1040,142 H1088"/>
         <path class="edge" data-from="n-055" data-to="n-sm" d="M1040,220 H1088"/>
@@ -327,7 +337,7 @@
         <!-- Databricks placement rail, aligned under each column -->
         <g class="rail" id="rail">
           <rect class="bg" x="20" y="586" width="1260" height="162" rx="3"/>
-          <text class="title" x="36" y="608">ON DATABRICKS · UNITY CATALOG am · THE DOT ON EACH BOX ABOVE IS ITS SCHEMA</text>
+          <text class="title" x="36" y="608">ON DATABRICKS · UNITY CATALOG am · THE DOT ON EACH BOX ABOVE IS ITS SCHEMA · TABLES HOLD DATA, THE SEMANTIC SCHEMA HOLDS ONLY VIEWS</text>
 
           <!-- sources -> bronze -->
           <circle cx="42" cy="630" r="5" fill="#B87333"/>
@@ -371,18 +381,18 @@
           <text class="note" x="780" y="726">reads DP-008 rows by API.</text>
 
           <!-- semantic -> gold views, consumption -->
-          <circle cx="1096" cy="630" r="5" fill="#C9A227"/>
-          <text class="name" x="1108" y="634">am.gold · semantic</text>
+          <circle cx="1096" cy="630" r="5" fill="#7C3AED"/>
+          <text class="name" x="1108" y="634">am.semantic · views only</text>
           <text class="obj" x="1090" y="652">sm01_* views, sm00_* dims</text>
-          <text class="obj" x="1090" y="666">mv_sm01_flows_aum (metrics)</text>
-          <text class="note" x="1090" y="684">Grants per role on views only;</text>
-          <text class="note" x="1090" y="698">column masks for hidden fields.</text>
-          <text class="note" x="1090" y="716">Genie space and AI/BI dashboards</text>
-          <text class="note" x="1090" y="730">on top, calling MEASURE().</text>
+          <text class="obj" x="1090" y="666">mv_sm01_flows_aum (metric view)</text>
+          <text class="note" x="1090" y="684">Catalog metadata, not storage:</text>
+          <text class="note" x="1090" y="698">renames, filters and measures over</text>
+          <text class="note" x="1090" y="712">gold tables. Grants per role here.</text>
+          <text class="note" x="1090" y="730">Genie and dashboards call MEASURE().</text>
         </g>
       </svg>
     </div>
-    <figcaption>All four measures come out of this chain. The certified figure is computed in exactly one place, DP-008. Everything to its right reads its rows; SM-01 names tables from DP-006, DP-007, DP-008, DP-015 and DP-055 and sums the columns it is given. DP-029, DP-024 and DP-045 read the same certified rows and publish through other models or straight to the Data Office. The dashed blue edges are the taxonomy's hold on the chain: the rule classifies each transaction in DP-006 and versions the measure in DP-008. The rail at the bottom places each column in one Unity Catalog catalog, <code>am</code>: feeds land in bronze, the foundational products and the taxonomy register are conformed in silver, and the certified product, the consumer products and the SM-01 views and metric views live in gold. The shape is the one the activation build exports for the wealth model; for this chain it is proposed, not yet run on a workspace.</figcaption>
+    <figcaption>All four measures come out of this chain. The certified figure is computed in exactly one place, DP-008. Everything to its right reads its rows; SM-01 names tables from DP-006, DP-007, DP-008, DP-015 and DP-055 and sums the columns it is given. DP-029, DP-024 and DP-045 read the same certified rows and publish through other models or straight to the Data Office. The dashed blue edges are the taxonomy's hold on the chain: the rule classifies each transaction in DP-006 and versions the measure in DP-008. The rail at the bottom places each column in one Unity Catalog catalog, <code>am</code>: feeds land in bronze, the foundational products and the taxonomy register are conformed in silver, the certified product and the consumer products are stored in gold, and SM-01 is a separate schema, <code>am.semantic</code>, that holds only views and metric views. It stores no rows; every figure it returns is read from the gold tables. The shape is the one the activation build exports for the wealth model; for this chain it is proposed, not yet run on a workspace.</figcaption>
     <div class="legend">
       <span><i class="sw src"></i>Source feed</span>
       <span><i class="sw tax"></i>Taxonomy</span>
@@ -393,6 +403,7 @@
       <span><i class="sw bronze"></i>am.bronze</span>
       <span><i class="sw silver"></i>am.silver</span>
       <span><i class="sw gold"></i>am.gold</span>
+      <span><i class="sw semantic"></i>am.semantic (views only)</span>
     </div>
   </figure>
 
@@ -430,11 +441,11 @@
         <div class="step sm"><div class="lbl">Semantic model</div>
           <p class="one">Publishes the figure; defines nothing.</p>
           <dl class="kv">
-            <dt>Metric</dt><dd>Net Flows in SM-01 Distribution Performance = the sum of DP-008's column</dd>
+            <dt>Metric</dt><dd>Net Flows in SM-01 Distribution Performance = the sum of DP-008's column, declared in a metric view in am.semantic</dd>
             <dt>Guard rails</dt><dd>One dimension cut per query, monthly periods, the current locked snapshot</dd>
             <dt>Default</dt><dd>Trailing 12 locked months</dd>
           </dl>
-          <p class="ref"><code>sum(flows_aum.net_flows)</code>, source DP-008 / Net Flows</p></div>
+          <p class="ref"><code>am.semantic.sm01_flows_aum</code> is a view over <code>am.gold.dp_008_measure_value</code>; <code>am.semantic.mv_sm01_flows_aum</code> declares <code>sum(flows_aum.net_flows)</code>, source DP-008 / Net Flows</p></div>
         <div class="step in"><div class="lbl">Input</div>
           <p class="one">Starts from every attributed trade.</p>
           <dl class="kv">
@@ -485,7 +496,7 @@
           <p class="one">The same definition with one lever changed.</p>
           <dl class="kv">
             <dt>Lever</dt><dd>Time Basis: Trade Date for the base, Settlement Date for Finance</dd>
-            <dt>Registered as</dt><dd>A second version of the same measure, under its own name</dd>
+            <dt>Registered as</dt><dd>Net Flows (Settlement Date), a certified metric in SM-01, source DP-008; the second version of the same measure definition</dd>
             <dt>Already out</dt><dd>Money market funds and reinvestments, so Finance needs nothing else changed</dd>
           </dl>
           <p class="ref">Time Basis <code>TX-MEA-010</code>; Trade Date <code>TX-TRN-015</code> and Settlement Date <code>TX-TRN-016</code> both held on the transaction</p></div>
@@ -499,7 +510,7 @@
         <div class="step sm"><div class="lbl">Semantic model</div>
           <p class="one">Side by side, so the gap is a line, not an argument.</p>
           <dl class="kv">
-            <dt>Metric</dt><dd>Net Flows (Settlement Date), certified, next to the trade-date figure</dd>
+            <dt>Metric</dt><dd>Net Flows (Settlement Date), certified in SM-01 and the register, next to the trade-date figure</dd>
             <dt>Gap</dt><dd>Timing only; it reverses next quarter</dd>
           </dl></div>
         <div class="step in"><div class="lbl">Input</div>
@@ -519,7 +530,7 @@
           <dl class="kv">
             <dt>Lever</dt><dd>Reinvestment Treatment keeps reinvestments out of the base and in Market Movement</dd>
             <dt>Own line</dt><dd>Reinvested Distributions is a certified measure of its own</dd>
-            <dt>Registered as</dt><dd>Net Flows incl. Reinvestments = Net Flows + Reinvested Distributions</dd>
+            <dt>Registered as</dt><dd>Net Flows incl. Reinvestments, a certified metric in SM-01, source DP-008 = Net Flows + Reinvested Distributions</dd>
           </dl>
           <p class="ref">Reinvestment Treatment <code>TX-MEA-013</code>, Reinvested Distributions <code>TX-MEA-035</code>, Market Movement <code>TX-MEA-038</code></p></div>
         <div class="step found"><div class="lbl">Data product</div>
@@ -531,7 +542,7 @@
         <div class="step sm"><div class="lbl">Semantic model</div>
           <p class="one">The roll-forward ties by construction.</p>
           <dl class="kv">
-            <dt>Metric</dt><dd>Net Flows incl. Reinvestments, published under its own name</dd>
+            <dt>Metric</dt><dd>Net Flows incl. Reinvestments, certified in SM-01; Reinvested Distributions published beside it</dd>
             <dt>Identity</dt><dd>Beginning AUM + Net Flows + Market Movement + FX = Ending AUM</dd>
           </dl></div>
         <div class="step in"><div class="lbl">Input</div>
@@ -550,8 +561,8 @@
           <dl class="kv">
             <dt>Snapshot</dt><dd>Flash, Preliminary, Final, Restated; a Restated snapshot supersedes a Final one</dd>
             <dt>Restatement</dt><dd>Reason, periods affected, amount, approver, compensation impact</dd>
-            <dt>Reasons today</dt><dd>Late source data, source correction, rule change, hierarchy change, definition change, error</dd>
-            <dt>To confirm</dt><dd>A "management adjustment" reason with a mandatory approver, for changes that are decisions rather than corrections</dd>
+            <dt>Reasons</dt><dd>Late source data, source correction, rule change, hierarchy change, definition change, management adjustment, error</dd>
+            <dt>Added</dt><dd>Management Adjustment, a reason for approved changes that are decisions rather than corrections, with a mandatory approver; approval role to confirm</dd>
           </dl>
           <p class="ref">Family TX-SNP: Snapshot Type <code>TX-SNP-006</code>, Restatement Reason <code>TX-SNP-012</code>, Approved By <code>TX-SNP-016</code></p></div>
         <div class="step found"><div class="lbl">Data product</div>
@@ -638,15 +649,15 @@
       where: "DP-006 writes both exchange legs and the credit rows; DP-008 publishes Gross Sales, Redemptions and Net Exchanges beside Net Flows from the same snapshot; SM-01 certifies Gross Sales and SM-02 publishes Credited Net Sales by territory.",
       path: ["n-tax","n-s1","n-s2","n-006","n-008","n-sm"] },
     { team: "Finance", num: "$1.86bn", did: "Net flows on settlement date, so they tie to cash and the ledger; money market and reinvestments out.",
-      rule: "Time Basis is a lever with Settlement Date as a permitted value. Finance's measure is a second definition version of MSR-NETFLOW, registered under its own name; money market and reinvestments are already excluded from the base.",
+      rule: "Time Basis is a lever with Settlement Date as a permitted value. Finance's measure is the second definition version of MSR-NETFLOW, certified in SM-01 as Net Flows (Settlement Date); money market and reinvestments are already excluded from the base.",
       where: "DP-006 carries both dates on every row; DP-008 computes both versions from the same rows and snapshot; SM-01 publishes Net Flows (Settlement Date) beside the trade-date figure, with share class joined to DP-004 so the money market slice is a filter.",
       path: ["n-tax","n-s1","n-s2","n-006","n-008","n-mst","n-sm"] },
     { team: "Product", num: "$2.08bn", did: "Net flows plus reinvested distributions, so the fund's net assets roll forward.",
-      rule: "Reinvestment Treatment keeps reinvestments out of the base and publishes Reinvested Distributions as its own certified line. Product's measure is the two added, under its own name.",
+      rule: "Reinvestment Treatment keeps reinvestments out of the base and publishes Reinvested Distributions as its own line. Product's measure, Net Flows incl. Reinvestments, is the two added, certified in SM-01.",
       where: "DP-006 keeps every Reinvestment row; DP-008 publishes reinvested distributions and market movement beside net flows; SM-01 publishes Net Flows incl. Reinvestments and closes the identity Beginning AUM + Net Flows + Market Movement + FX = Ending AUM.",
       path: ["n-tax","n-s1","n-006","n-007","n-008","n-sm"] },
     { team: "Executive pack", num: "$2.20bn", did: "Last quarter's figure after two post-close adjustments the leadership approved.",
-      rule: "Adjustments after lock are a governed object, not an edit: a Restatement row with a reason, affected periods, amount, approver and compensation flag, applied in a Restated snapshot that supersedes the Final one. A management-adjustment reason is the one lever to confirm.",
+      rule: "Adjustments after lock are a governed object, not an edit: a Restatement row with a reason, affected periods, amount, approver and compensation flag, applied in a Restated snapshot that supersedes the Final one. Management Adjustment is now a reason of its own, approver mandatory.",
       where: "DP-008 keeps every Final and Restated snapshot and every restatement row; SM-01 always reads the current locked snapshot and publishes Restatement Impact as the bridge; DP-015 builds the pack from it.",
       path: ["n-tax","n-s1","n-s4","n-006","n-008","n-015","n-045","n-sm"] }
   ];
@@ -658,7 +669,7 @@
     { op: "+" },
     { k: "Net Exchanges", v: "$0.00bn", n: "exchanges in less exchanges out", w: "nets to zero inside the family", cls: "in" },
     { op: "=" },
-    { k: "Net Flows · certified", v: "$2.02bn", n: "the one figure, locked snapshot", w: "dp_008_measure_value → sm01_flows_aum → mv_sm01_flows_aum", cls: "cert" }
+    { k: "Net Flows · certified", v: "$2.02bn", n: "the one figure, locked snapshot", w: "am.gold.dp_008_measure_value → am.semantic.sm01_flows_aum → mv_sm01_flows_aum", cls: "cert" }
   ];
   var BRIDGE = {
     "Sales": { adj: [
@@ -685,7 +696,7 @@
     if (!t) { bridgeRow.innerHTML = ""; bridgeKey.textContent = ""; bridgeHint.hidden = false; return; }
     var b = BRIDGE[t.team]; var html = BASE.map(function (d) { return step(d); }).join("");
     b.adj.forEach(function (d) { html += '<div class="bop" aria-hidden="true">→</div>' + step(d, "adj"); });
-    html += '<div class="bop" aria-hidden="true">=</div>' + step({ k: t.team, v: t.num, n: b.out, w: "a named measure, published beside the base" }, "out");
+    html += '<div class="bop" aria-hidden="true">=</div>' + step({ k: t.team, v: t.num, n: b.out, w: "a named metric in SM-01, one owner; defined in the taxonomy, computed in DP-008" }, "out");
     bridgeRow.innerHTML = html; bridgeKey.innerHTML = "<b>Reading it:</b> " + esc(b.key); bridgeHint.hidden = true;
   }
   var teamChips = document.getElementById("chips-teams");
