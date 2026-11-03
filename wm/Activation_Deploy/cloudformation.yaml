@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  Source-to-semantic activation demo on one EC2 instance: the package from S3, a DuckDB build of the slice, the web
+  app behind nginx with basic auth, and the Claude API key read from SSM Parameter Store through the instance role.
+
+Parameters:
+  PackageS3Uri:
+    Type: String
+    Description: "The package make_package.sh uploaded, e.g. s3://my-bucket/cg-activation/cg-activation-2fb2da1.tar.gz"
+    AllowedPattern: "^s3://[^/]+/.+\\.tar\\.gz$"
+  AnthropicKeyParameterName:
+    Type: String
+    Default: /cg-activation/anthropic-api-key
+    Description: "Name of the SSM SecureString parameter that holds the Claude API key (create it before the stack: aws ssm put-parameter --type SecureString)"
+  AuthUser:
+    Type: String
+    Default: demo
+    Description: "Basic-auth user name for the web app"
+  AuthPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 12
+    Description: "Basic-auth password for the web app (12+ characters)"
+  AllowedCidr:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: "Who may reach port 80 (your office or VPN range; 0.0.0.0/0 relies on basic auth alone)"
+    AllowedPattern: "^\\d+\\.\\d+\\.\\d+\\.\\d+/\\d+$"
+  InstanceType:
+    Type: String
+    Default: t3.large
+    AllowedValues: [t3.medium, t3.large, t3.xlarge, m6i.large, m6i.xlarge, m7i.large]
+  ClaudeModel:
+    Type: String
+    Default: claude-opus-5-5
+    AllowedValues: [claude-opus-5-5, claude-sonnet-5-5]
+    Description: "The Claude model behind the mapping assistant and the question router"
+  PrecomputeProposals:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: "Cache the eight sources' mapping proposals with Claude at install (a few minutes, a few hundred thousand tokens)"
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: "A public subnet (the instance gets a public IP)"
+  KeyName:
+    Type: String
+    Default: ""
+    Description: "Optional EC2 key pair; Session Manager works without one"
+  LatestAmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Conditions:
+  HasKeyName: !Not [!Equals [!Ref KeyName, ""]]
+
+Resources:
+  Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: ec2.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: cg-activation
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadTheClaudeKey
+                Effect: Allow
+                Action: [ssm:GetParameter]
+                Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AnthropicKeyParameterName}"
+              - Sid: DecryptTheClaudeKey
+                Effect: Allow
+                Action: [kms:Decrypt]
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub "ssm.${AWS::Region}.amazonaws.com"
+              - Sid: ReadThePackage
+                Effect: Allow
+                Action: [s3:GetObject]
+                Resource: !Sub
+                  - "arn:aws:s3:::${BucketAndKey}"
+                  - BucketAndKey: !Select [1, !Split ["s3://", !Ref PackageS3Uri]]
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles: [!Ref Role]
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Activation demo web access
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AllowedCidr
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref AllowedCidr
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  Instance:
+    Type: AWS::EC2::Instance
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT30M
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref InstanceProfile
+      KeyName: !If [HasKeyName, !Ref KeyName, !Ref "AWS::NoValue"]
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          AssociatePublicIpAddress: true
+          SubnetId: !Ref SubnetId
+          GroupSet: [!Ref SecurityGroup]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs: { VolumeSize: 30, VolumeType: gp3, Encrypted: true }
+      Tags:
+        - { Key: Name, Value: cg-activation-demo }
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          exec > >(tee /var/log/cg-activation-install.log | logger -t cg-activation) 2>&1
+          dnf install -y -q aws-cfn-bootstrap tar gzip || true
+          PKG=/root/package.tar.gz
+          aws s3 cp "${PackageS3Uri}" "$PKG"
+          mkdir -p /root/pkg && tar -xzf "$PKG" -C /root/pkg
+          INSTALL=$(find /root/pkg -path '*/_tools/activation/deploy/install.sh' | head -1)
+          PRE=""; [ "${PrecomputeProposals}" = "true" ] && PRE="--precompute"
+          if bash "$INSTALL" --package "$PKG" --key-parameter "${AnthropicKeyParameterName}" \
+               --auth-user "${AuthUser}" --auth-password "${AuthPassword}" --model "${ClaudeModel}" $PRE; then
+            /opt/aws/bin/cfn-signal -e 0 --stack "${AWS::StackName}" --resource Instance --region "${AWS::Region}"
+          else
+            /opt/aws/bin/cfn-signal -e 1 --stack "${AWS::StackName}" --resource Instance --region "${AWS::Region}"
+          fi
+
+Outputs:
+  Url:
+    Description: The demo, behind basic auth
+    Value: !Sub "http://${Instance.PublicDnsName}/"
+  InstanceId:
+    Value: !Ref Instance
+  SessionManager:
+    Description: Shell access without SSH
+    Value: !Sub "aws ssm start-session --target ${Instance} --region ${AWS::Region}"
+  InstallLog:
+    Value: "/var/log/cg-activation-install.log on the instance; service logs: journalctl -u cg-activation"

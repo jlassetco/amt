@@ -1,0 +1,7 @@
+# The activation demo's Python dependencies for the EC2 deployment (DuckDB runtime, Claude through the Anthropic API).
+# Pinned to the versions the demo was built and proven with on 2026-11-03. Python 3.10 to 3.12.
+duckdb==1.5.6
+PyYAML==6.0.3
+anthropic==1.15.0
+mcp==2.3.0
+openpyxl==3.1.5

@@ -1,0 +1,26 @@
+[Unit]
+Description=Source-to-semantic activation demo (DuckDB runtime, Claude through the Anthropic API)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cg-activation
+Group=cg-activation
+WorkingDirectory=@APP_ROOT@/app/_tools
+EnvironmentFile=/etc/cg-activation/env
+# the AWS CLI in start.sh wants a writable HOME; PrivateTmp gives the service its own /tmp
+Environment=HOME=/tmp
+ExecStart=@APP_ROOT@/start.sh
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+# the app writes only under its own out/ folder
+ProtectSystem=strict
+ReadWritePaths=@APP_ROOT@/app/_tools/activation/out
+ProtectHome=true
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
