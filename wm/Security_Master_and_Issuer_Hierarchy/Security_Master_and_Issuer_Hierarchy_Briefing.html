@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Security Master and Issuer Hierarchy: Proposed Data Model</title><style>
 :root { --bg:#FFFFFF; --fg:#1A2B3C; --muted:#535E6C; --surface:#EEF1F8; --line:#C9D1DE; --blue:#1E49E2; --green:#00796F;
-  --teal:#0077A8; --magenta:#C8166F; --on:#FFFFFF; --font:Arial, Helvetica, sans-serif; }
+  --teal:#0077A8; --magenta:#C8166F; --on:#FFFFFF; --font:Arial, Helvetica, sans-serif; --measure:none; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#0B1726; --fg:#EEF1F8; --muted:#A7B3C4;
   --surface:#15253B; --line:#2C3E58; --blue:#6C8DFF; --green:#1E9E92; --teal:#2E9BD0; --magenta:#E8469A; color-scheme:dark; } }
 :root[data-theme="dark"] { --bg:#0B1726; --fg:#EEF1F8; --muted:#A7B3C4; --surface:#15253B; --line:#2C3E58; --blue:#6C8DFF;
@@ -16,8 +16,8 @@ section { display:grid; gap:14px; min-width:0; }
 h1 { font-size:clamp(26px, 3.6vw, 38px); line-height:1.12; margin:0; text-wrap:balance; }
 h2 { font-size:21px; line-height:1.2; margin:0; text-wrap:balance; }
 h3 { font-size:15px; margin:0; }
-p { margin:0; max-width:78ch; }
-.lede { font-size:17px; color:var(--muted); max-width:72ch; }
+p { margin:0; max-width:var(--measure); }
+.lede { font-size:17px; color:var(--muted); }
 .muted { color:var(--muted); }
 .num { font-size:12px; font-weight:700; letter-spacing:.1em; color:var(--blue); text-transform:uppercase; margin:0; }
 .stats { display:grid; grid-template-columns:repeat(6, 1fr); gap:10px; }
@@ -27,7 +27,7 @@ p { margin:0; max-width:78ch; }
 .grid3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
 .grid2 { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
 .card { border:1px solid var(--line); border-radius:6px; padding:14px 16px; display:grid; gap:6px; align-content:start; min-width:0; }
-.card p { font-size:14px; color:var(--muted); }
+.card p { font-size:14px; color:var(--muted); max-width:none; }
 .card.core { border-top:3px solid var(--blue); } .card.control { border-top:3px solid var(--teal); }
 .card.found { border-top:3px solid var(--green); } .card.adj { border-top:3px solid var(--line); }
 .tag { display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; padding:2px 7px; border-radius:3px;
@@ -45,10 +45,10 @@ th { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(-
 td.n, th.n { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 td b { font-weight:700; }
 td.k { white-space:nowrap; font-weight:700; }
-figure { margin:0; display:grid; gap:8px; }
+figure { margin:0; display:grid; gap:8px; min-width:0; }
 .scroller { overflow-x:auto; border:1px solid var(--line); border-radius:6px; }
 svg { display:block; width:100%; min-width:1000px; height:auto; font-family:var(--font); }
-figcaption { font-size:13px; color:var(--muted); max-width:90ch; }
+figcaption { font-size:13px; color:var(--muted); max-width:var(--measure); }
 .legend { display:flex; flex-wrap:wrap; gap:14px; font-size:12.5px; color:var(--muted); }
 .legend span::before { content:""; display:inline-block; width:14px; height:10px; margin-right:6px; border-radius:2px; vertical-align:-1px; }
 .legend .l-core::before { background:var(--blue); } .legend .l-child::before { border:1.6px solid var(--blue); }
@@ -73,14 +73,14 @@ ol.path li { display:grid; grid-template-columns:34px 1fr; gap:4px 10px; counter
 ol.path li::before { content:counter(p); grid-row:span 2; width:28px; height:28px; border-radius:50%; background:var(--blue); color:var(--on);
   font-weight:700; font-size:13px; display:grid; place-items:center; }
 ol.path b { font-size:15px; } ol.path span { color:var(--muted); font-size:14px; }
-ul { margin:0; padding-left:20px; display:grid; gap:4px; max-width:82ch; } li { font-size:14.5px; }
+ul { margin:0; padding-left:20px; display:grid; gap:4px; max-width:var(--measure); } li { font-size:14.5px; }
 footer { font-size:12.5px; color:var(--muted); border-top:1px solid var(--line); padding-top:14px; }
 @media (max-width:900px) { .stats { grid-template-columns:repeat(3, 1fr); } .grid3, .steps { grid-template-columns:1fr; } .grid2 { grid-template-columns:1fr; } }
 @media (max-width:560px) { .stats { grid-template-columns:repeat(2, 1fr); } }
 @media print { body { padding:0; font-size:12px; } main { gap:26px; } section { break-inside:avoid-page; } .scroller, .tbl { overflow:visible; } svg { min-width:0; } }
 </style></head>
 <body><main><header><section>
-<p class="kicker">Proposal for review &middot; 2026-11-16</p>
+<p class="kicker">Proposal for review &middot; 2026-11-17</p>
 <h1>Security Master and Issuer Hierarchy</h1>
 <p class="lede">A complete proposed data model for the instruments a wealth manager holds, trades and offers, and for the issuers
 behind them. It comes with the taxonomy it is built from and the data products that publish it, so it can be reviewed and adopted as one piece.</p>
@@ -199,5 +199,5 @@ separate copy of security or issuer reference data would otherwise be kept and r
 <h2>Everything above, to attribute level</h2>
 <p><b>Security_Master_and_Issuer_Hierarchy_Data_Model.xlsx</b> carries the full detail in filterable tabs:</p>
 <div class="tbl"><table><thead><tr><th class="k">Tab</th><th class="">Contents</th></tr></thead><tbody><tr><td class="k">Data Products</td><td class="">The 9 products with role, owner, definition, grain, refresh, timeliness, history and delivery</td></tr><tr><td class="k">Entities, Attributes, Relationships</td><td class="">The logical model: 76 entities, 728 entity attributes with key flags, 112 relationships</td></tr><tr><td class="k">Business Questions, Measures, Data Quality Rules</td><td class="">What each modeled product answers, its 58 measures and 23 rules, each defined once</td></tr><tr><td class="k">Taxonomy Hierarchy, Taxonomy</td><td class="">62 business objects and 470 attributes with definitions, types, standards, ownership and critical data element flags</td></tr><tr><td class="k">Code Lists</td><td class="">76 lists and 717 controlled values</td></tr><tr><td class="k">Consumers</td><td class="">The 72 downstream products, by domain and owner</td></tr><tr><td class="k">Decisions and Levers</td><td class="">The design choices and the choices left to you</td></tr><tr><td class="k">Jurisdiction Extension</td><td class="">6 instrument attributes for business booked outside the US</td></tr><tr><td class="k">Standards</td><td class="">28 standards and public sources the taxonomy is aligned to</td></tr></tbody></table></div></section>
-<footer>Security Master and Issuer Hierarchy &middot; Proposed data model, taxonomy and data products for a wealth manager &middot; Proposal for review &middot; 2026-11-16. Logical model; no physical design is implied.</footer>
+<footer>Security Master and Issuer Hierarchy &middot; Proposed data model, taxonomy and data products for a wealth manager &middot; Proposal for review &middot; 2026-11-17. Logical model; no physical design is implied.</footer>
 </main></body></html>
