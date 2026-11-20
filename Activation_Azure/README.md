@@ -1,7 +1,7 @@
 # The activation demo on Azure: start here
 
 This folder holds everything needed to put the Data Platform Console on Azure as a password-protected, read-only web
-app. You work entirely in the Azure web portal; nothing is installed on your computer.
+app. You work entirely in the Azure web portal, uploading the package from your computer; nothing is installed on it.
 
 What you end up with: an `https://...azurecontainerapps.io/` address that asks for a user name and password and then
 shows the console. The data is synthetic. The build inside is commit 325f2152: 507,396 certified figures, each proven
@@ -39,16 +39,23 @@ one to use:
 az account set --subscription "<subscription name or id>"
 ```
 
-**2. Fetch the package and put it together.**
+**2. Upload the package from your computer and put it together.** You need this folder on your computer first (the
+six `.part-` files and `SHA256SUMS`). In the Cloud Shell toolbar click **Manage files > Upload**, and select the six
+`cg-activation-azure-325f2152.tar.gz.part-*` files and `SHA256SUMS`. If it takes only one file at a time, repeat until
+all seven are up. Wait for each upload to report that it finished; they land in your Cloud Shell home folder. Then:
 
 ```bash
-git clone --depth 1 https://github.com/jlassetco/amt.git
-cd amt/Activation_Azure
+cd ~
+ls -l cg-activation-azure-325f2152.tar.gz.part-* SHA256SUMS
 cat cg-activation-azure-325f2152.tar.gz.part-* > cg-activation-azure-325f2152.tar.gz
 sha256sum -c SHA256SUMS
 ```
 
+`ls` must list six parts (`part-aa` to `part-af`: five of 47,185,920 bytes and one of 14,871,544) and `SHA256SUMS`.
 The last line must print `cg-activation-azure-325f2152.tar.gz: OK`.
+
+If Cloud Shell can reach GitHub, this does the same without uploading: `git clone --depth 1
+https://github.com/jlassetco/amt.git && cd amt/Activation_Azure`, then the `cat` and `sha256sum` lines above.
 
 **3. Unpack it.**
 
@@ -107,11 +114,12 @@ minimum replicas to 0 removes most of the container's cost while nobody is using
 
 | What you see | What to do |
 |---|---|
-| `sha256sum` does not say OK | The download was incomplete. Delete the `amt` folder and repeat step 2 |
+| `sha256sum` does not say OK, or `ls` shows a part missing or with a different size | An upload was incomplete. Upload that part again (compare sizes with the list in step 2), then repeat the `cat` and `sha256sum` lines |
+| The browser renamed a file while downloading (for example added `.txt` or ` (1)`) | Rename it back in Cloud Shell with `mv 'wrong name' right-name` before the `cat` line |
 | "The registry name is already in use" | Pick another registry name and rerun step 4 |
 | An authorization error mentioning `roleAssignments` | Your account cannot grant roles. Ask a subscription administrator to give you Owner on the resource group, then rerun step 4 (it picks up where it stopped) |
 | "MissingSubscriptionRegistration" or a provider not registered | Run `az provider register -n Microsoft.App --wait`, `az provider register -n Microsoft.ContainerRegistry --wait` and `az provider register -n Microsoft.OperationalInsights --wait`, then rerun step 4 |
-| Cloud Shell times out during the build | Reopen it, `cd amt/Activation_Azure/cg-activation-azure-325f2152` and rerun step 4. If the folder is gone, start again from step 2 |
+| Cloud Shell times out during the build | Reopen it, `cd ~/cg-activation-azure-325f2152` and rerun step 4. If the folder is gone, start again from step 2 |
 | The browser keeps asking for the password | The user name is `demo` (unless you passed `--user`); check the password under Settings > Secrets |
 | The page does not load right after deploying | Give it two minutes: the app copies its database when it starts |
 
