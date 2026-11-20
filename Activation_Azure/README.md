@@ -77,6 +77,42 @@ creates the app. Allow 10 to 15 minutes. It ends with a line like:
 deployed: https://cg-activation.<something>.eastus.azurecontainerapps.io/  (user demo)
 ```
 
+**4b. Only if step 4 ended with an authorization error about `roleAssignments`.** The image is already built at that
+point; only the last part failed, because your account may not assign roles. Finish with the commands below, which use
+the registry's own login instead. Run them in the same Cloud Shell, one block at a time.
+
+Set the names. `RG` and `ACR` are the resource group and registry you gave in step 4; `NAME` is what the app will be
+called and becomes the first part of its address:
+
+```bash
+RG=<resource group>; ACR=<registry name>; NAME=data-console
+```
+
+Turn on the registry login and create the environment (a few minutes). If it asks to install the `containerapp`
+extension, answer yes:
+
+```bash
+az acr update -n $ACR --admin-enabled true
+az containerapp env create -g $RG -n $NAME-env --location $(az group show -n $RG --query location -o tsv)
+```
+
+Create the app. Put your password in the `--secrets` line:
+
+```bash
+az containerapp create -g $RG -n $NAME --environment $NAME-env \
+  --image $ACR.azurecr.io/cg-activation:325f2152 \
+  --registry-server $ACR.azurecr.io --registry-username $ACR \
+  --registry-password "$(az acr credential show -n $ACR --query 'passwords[0].value' -o tsv)" \
+  --secrets demo-password='<the password>' \
+  --env-vars DEMO_USER=demo DEMO_PASSWORD=secretref:demo-password ACTIVATION_LLM=none PORT=8765 \
+  --ingress external --target-port 8765 \
+  --cpu 1.0 --memory 2.0Gi --min-replicas 1 --max-replicas 1 \
+  --query properties.configuration.ingress.fqdn -o tsv
+```
+
+The last command prints the address, like `data-console.<something>.eastus.azurecontainerapps.io`. Put `https://` in
+front of it. In the portal the app is then under Container Apps > `data-console` rather than `cg-activation`.
+
 **5. Check it.** Still in Cloud Shell, with the address from step 4:
 
 ```bash
@@ -117,7 +153,7 @@ minimum replicas to 0 removes most of the container's cost while nobody is using
 | `sha256sum` does not say OK, or `ls` shows a part missing or with a different size | An upload was incomplete. Upload that part again (compare sizes with the list in step 2), then repeat the `cat` and `sha256sum` lines |
 | The browser renamed a file while downloading (for example added `.txt` or ` (1)`) | Rename it back in Cloud Shell with `mv 'wrong name' right-name` before the `cat` line |
 | "The registry name is already in use" | Pick another registry name and rerun step 4 |
-| An authorization error mentioning `roleAssignments` | Your account cannot grant roles. Ask a subscription administrator to give you Owner on the resource group, then rerun step 4 (it picks up where it stopped) |
+| An authorization error mentioning `roleAssignments` | Your account cannot grant roles. Follow step 4b, which needs no role assignment |
 | "MissingSubscriptionRegistration" or a provider not registered | Run `az provider register -n Microsoft.App --wait`, `az provider register -n Microsoft.ContainerRegistry --wait` and `az provider register -n Microsoft.OperationalInsights --wait`, then rerun step 4 |
 | Cloud Shell times out during the build | Reopen it, `cd ~/cg-activation-azure-325f2152` and rerun step 4. If the folder is gone, start again from step 2 |
 | The browser keeps asking for the password | The user name is `demo` (unless you passed `--user`); check the password under Settings > Secrets |
