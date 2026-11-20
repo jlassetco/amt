@@ -13,6 +13,7 @@ against independent truths, as of 2026-09-30.
 |---|---|
 | `cg-activation-azure-325f2152.tar.gz.part-*` | The package, split into pieces under 50 MB (GitHub's file limit). Joined, it is one 240 MB tarball |
 | `SHA256SUMS` | The checksum of the joined tarball |
+| `signin/serve.py` | The entry point with a sign-in page, applied in step 4c |
 | `README.md` | This page |
 
 Inside the package: the demo's code and finished output (`tree/`), the container definition (`Dockerfile`, `serve.py`),
@@ -113,6 +114,39 @@ az containerapp create -g $RG -n $NAME --environment $NAME-env \
 The last command prints the address, like `data-console.<something>.eastus.azurecontainerapps.io`. Put `https://` in
 front of it. In the portal the app is then under Container Apps > `data-console` rather than `cg-activation`.
 
+**4c. Switch to the sign-in page.** The package's tarball asks for the password with the browser's own pop-up, which
+some managed work browsers never show: the page then says only "sign in to continue". This step replaces the pop-up
+with an ordinary sign-in page. It adds one small file on top of the image you already built; nothing large is uploaded
+again. Do it after step 4 or 4b.
+
+Set the names again if this is a new Cloud Shell session (`NAME` is `cg-activation` after step 4, or what you chose in 4b):
+
+```bash
+RG=<resource group>; ACR=<registry name>; NAME=data-console
+```
+
+Get the new entry point into a folder of its own:
+
+```bash
+mkdir -p ~/signin && cd ~/signin
+curl -fsSL -o serve.py https://raw.githubusercontent.com/jlassetco/amt/main/Activation_Azure/signin/serve.py
+ls -l serve.py
+```
+
+If Cloud Shell cannot reach GitHub, download `signin/serve.py` from this folder to your computer, upload it with
+**Manage files > Upload**, and run `mkdir -p ~/signin && mv ~/serve.py ~/signin/ && cd ~/signin` instead.
+
+Build the small image and switch the app to it (about two minutes):
+
+```bash
+printf 'ARG BASE\nFROM ${BASE}\nCOPY serve.py /app/serve.py\n' > Dockerfile
+az acr build -r $ACR -t data-console:signin --build-arg BASE=$ACR.azurecr.io/cg-activation:325f2152 .
+az containerapp update -g $RG -n $NAME --image $ACR.azurecr.io/data-console:signin --query properties.latestRevisionName -o tsv
+```
+
+Wait a minute, then reload the app's address: it now shows a sign-in page. The user name and password are unchanged.
+A sign-in lasts 12 hours. `smoke.sh` and `curl -u` work as before.
+
 **5. Check it.** Still in Cloud Shell, with the address from step 4:
 
 ```bash
@@ -156,6 +190,7 @@ minimum replicas to 0 removes most of the container's cost while nobody is using
 | An authorization error mentioning `roleAssignments` | Your account cannot grant roles. Follow step 4b, which needs no role assignment |
 | "MissingSubscriptionRegistration" or a provider not registered | Run `az provider register -n Microsoft.App --wait`, `az provider register -n Microsoft.ContainerRegistry --wait` and `az provider register -n Microsoft.OperationalInsights --wait`, then rerun step 4 |
 | Cloud Shell times out during the build | Reopen it, `cd ~/cg-activation-azure-325f2152` and rerun step 4. If the folder is gone, start again from step 2 |
+| The page says only "sign in to continue" and never asks for a password | The browser blocks password pop-ups. Do step 4c |
 | The browser keeps asking for the password | The user name is `demo` (unless you passed `--user`); check the password under Settings > Secrets |
 | The page does not load right after deploying | Give it two minutes: the app copies its database when it starts |
 
