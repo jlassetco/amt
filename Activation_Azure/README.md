@@ -140,12 +140,12 @@ Build the small image and switch the app to it (about two minutes):
 
 ```bash
 printf 'ARG BASE\nFROM ${BASE}\nCOPY serve.py /app/serve.py\n' > Dockerfile
-az acr build -r $ACR -t data-console:signin --build-arg BASE=$ACR.azurecr.io/cg-activation:325f2152 .
-az containerapp update -g $RG -n $NAME --image $ACR.azurecr.io/data-console:signin --query properties.latestRevisionName -o tsv
+az acr build -r $ACR -t data-console:signin-2 --build-arg BASE=$ACR.azurecr.io/cg-activation:325f2152 .
+az containerapp update -g $RG -n $NAME --image $ACR.azurecr.io/data-console:signin-2 --query properties.latestRevisionName -o tsv
 ```
 
 Wait a minute, then reload the app's address: it now shows a sign-in page. The user name and password are unchanged.
-A sign-in lasts 12 hours. `smoke.sh` and `curl -u` work as before.
+A sign-in ends when the browser is closed (all its windows, not just the tab), and after 12 hours at the latest. `smoke.sh` and `curl -u` work as before.
 
 **5. Check it.** Still in Cloud Shell, with the address from step 4:
 

@@ -6,7 +6,7 @@ It loads the packaged console (tree/_tools/activation/console/server.py) unchang
 its request handler:
 
   the password   a sign-in page (/login) that sets a session cookie, from DEMO_USER (default "demo") and
-                 DEMO_PASSWORD. Every path but /healthz and /login needs the cookie; HTTP basic auth with the same
+                 DEMO_PASSWORD. The cookie lasts until the browser is closed, and never longer than SESSION_HOURS. Every path but /healthz and /login needs the cookie; HTTP basic auth with the same
                  user and password is accepted too, for scripts (smoke.sh, curl -u). No browser pop-up is used: some
                  managed browsers never show one. The server refuses to start without DEMO_PASSWORD unless
                  DEMO_AUTH=off is set on purpose. Serve it behind HTTPS (Container Apps ingress does that).
@@ -114,9 +114,11 @@ def guarded(base, creds):
             n = int(self.headers.get("Content-Length") or 0)
             return self.rfile.read(min(n, 65536)) if n else b""
 
-        def _cookie(self, value, max_age):
+        def _cookie(self, value, max_age=None):
+            """max_age None: a browser-session cookie, gone when the browser is closed; 0 deletes it."""
             secure = "; Secure" if (self.headers.get("X-Forwarded-Proto") or "").lower() == "https" else ""
-            return ("Set-Cookie", f"{COOKIE}={value}; Path=/; Max-Age={max_age}; HttpOnly; SameSite=Lax{secure}")
+            age = "" if max_age is None else f"; Max-Age={max_age}"
+            return ("Set-Cookie", f"{COOKIE}={value}; Path=/{age}; HttpOnly; SameSite=Lax{secure}")
 
         def _signed_in(self):
             if hmac.compare_digest((self.headers.get("Authorization") or "").encode("utf-8"), basic.encode("utf-8")):
@@ -149,7 +151,7 @@ def guarded(base, creds):
                         ok = hmac.compare_digest(given_user.encode("utf-8"), user.encode("utf-8")) & \
                             hmac.compare_digest(given_pw.encode("utf-8"), password.encode("utf-8"))
                         if ok:
-                            return self._reply(303, "", headers=[("Location", "/"), self._cookie(new_session(), SESSION_HOURS * 3600)])
+                            return self._reply(303, "", headers=[("Location", "/"), self._cookie(new_session())])
                         time.sleep(1)                       # slows guessing
                         return self._login_page(401, "That user name or password is not right.")
                     return self._reply(303, "", headers=[("Location", "/")]) if self._signed_in() else self._login_page()
